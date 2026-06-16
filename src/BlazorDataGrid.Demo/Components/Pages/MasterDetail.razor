@@ -1,0 +1,74 @@
+@page "/master-detail"
+@using BlazorDataGrid.Demo.Data
+
+<PageTitle>Master Detail</PageTitle>
+
+<h1>Master detail</h1>
+<p class="lead">Expand a master row to reveal a fully-featured detail grid of its related records.</p>
+
+<p>
+    The <code>DetailTemplate</code> receives the row item and can render anything — including another
+    <code>BlazorDataGrid</code>. Here each supplier expands to show a nested, sortable grid of the
+    products it provides, plus a small summary panel. Click the ▸ toggle on the left of a row.
+</p>
+
+<div class="card">
+    <BlazorDataGrid TItem="Supplier" Items="_suppliers" Height="520px" Sortable="true">
+        <DetailTemplate Context="supplier">
+            <div class="md-detail">
+                <div class="md-summary">
+                    <div><span class="md-label">Products</span><span class="md-value">@supplier.Products.Count</span></div>
+                    <div><span class="md-label">Total stock</span><span class="md-value">@supplier.Products.Sum(p => p.Stock).ToString("N0")</span></div>
+                    <div><span class="md-label">Avg price</span><span class="md-value">@supplier.Products.Average(p => p.Price).ToString("C2")</span></div>
+                    <div><span class="md-label">Active</span><span class="md-value">@supplier.Products.Count(p => !p.Discontinued)</span></div>
+                </div>
+
+                <BlazorDataGrid TItem="Product" Items="supplier.Products" Sortable="true" Bordered="true" Striped="true">
+                    <BlazorDataGridColumn TItem="Product" Field="Id" Title="ID" Width="70px" Align="BlazorDataGridColumnAlign.Right" />
+                    <BlazorDataGridColumn TItem="Product" Field="Name" Width="220px" />
+                    <BlazorDataGridColumn TItem="Product" Field="Category" />
+                    <BlazorDataGridColumn TItem="Product" Field="Price" Format="C2" Align="BlazorDataGridColumnAlign.Right" />
+                    <BlazorDataGridColumn TItem="Product" Field="Stock" Align="BlazorDataGridColumnAlign.Right" />
+                    <BlazorDataGridColumn TItem="Product" Field="Discontinued" Title="Active">
+                        <Template Context="p">
+                            <span class="badge @(p.Discontinued ? "badge-off" : "badge-on")">@(p.Discontinued ? "No" : "Yes")</span>
+                        </Template>
+                    </BlazorDataGridColumn>
+                </BlazorDataGrid>
+            </div>
+        </DetailTemplate>
+
+        <ChildContent>
+            <BlazorDataGridColumn TItem="Supplier" Field="Name" Title="Supplier" Width="260px" />
+            <BlazorDataGridColumn TItem="Supplier" Field="ProductCount" Title="Products" Align="BlazorDataGridColumnAlign.Right" />
+            <BlazorDataGridColumn TItem="Supplier" Field="TotalStock" Title="Total stock" Format="N0" Align="BlazorDataGridColumnAlign.Right" />
+            <BlazorDataGridColumn TItem="Supplier" Field="AveragePrice" Title="Avg price" Format="C2" Align="BlazorDataGridColumnAlign.Right" />
+        </ChildContent>
+    </BlazorDataGrid>
+</div>
+
+<p class="hint">Each nested detail grid sorts and styles independently of the master grid.</p>
+
+@code {
+    private List<Supplier> _suppliers = BuildSuppliers();
+
+    private static List<Supplier> BuildSuppliers() =>
+        SampleData.Generate(240)
+            .GroupBy(p => p.Supplier)
+            .Select(g => new Supplier
+            {
+                Name = g.Key,
+                Products = g.OrderBy(p => p.Name).ToList()
+            })
+            .OrderBy(s => s.Name)
+            .ToList();
+
+    private sealed class Supplier
+    {
+        public string Name { get; set; } = "";
+        public List<Product> Products { get; set; } = new();
+        public int ProductCount => Products.Count;
+        public int TotalStock => Products.Sum(p => p.Stock);
+        public decimal AveragePrice => Products.Count == 0 ? 0 : Math.Round(Products.Average(p => p.Price), 2);
+    }
+}

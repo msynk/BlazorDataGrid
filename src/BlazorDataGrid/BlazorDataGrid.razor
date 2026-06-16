@@ -57,7 +57,7 @@
     }
 
     @* ------------------------------------------------------- Grid viewport *@
-    <div class="bdg-viewport" style="@ViewportStyle">
+    <div class="bdg-viewport" style="@ViewportStyle" @ref="_infiniteViewport">
         <div class="bdg-table" role="grid" aria-rowcount="@TotalCount" style="--bdg-template:@BuildGridTemplate();">
 
             @if (ShowHeader)
@@ -207,7 +207,7 @@
                 {
                     <div class="bdg-loading"><span class="bdg-spinner"></span> Loading…</div>
                 }
-                else if (TotalCount == 0 && PendingNewItem is null)
+                else if (TotalCount == 0 && PendingNewItem is null && !IsInfiniteMode)
                 {
                     <div class="bdg-empty">
                         @if (EmptyTemplate is not null)
@@ -223,6 +223,44 @@
                 else if (_viewGroups is not null)
                 {
                     @RenderGroupList(_viewGroups)
+                }
+                else if (IsInfiniteMode)
+                {
+                    @if (InfiniteItems.Count == 0 && !InfiniteLoading)
+                    {
+                        <div class="bdg-empty">
+                            @if (EmptyTemplate is not null)
+                            {
+                                @EmptyTemplate
+                            }
+                            else
+                            {
+                                <span>No records to display.</span>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        @foreach (var item in InfiniteItems)
+                        {
+                            <BlazorDataGridRow TItem="TItem" Grid="this" Item="item" @key="item" />
+                        }
+                        @if (InfiniteLoading)
+                        {
+                            <div class="bdg-row bdg-placeholder-row" role="row"
+                                 style="grid-template-columns:var(--bdg-template);min-height:@RowHeight.ToString(System.Globalization.CultureInfo.InvariantCulture)px;">
+                                <div class="bdg-cell bdg-placeholder-cell" style="grid-column:1 / -1;">
+                                    <span class="bdg-skeleton"></span>
+                                </div>
+                            </div>
+                        }
+                        else if (!InfiniteHasMore)
+                        {
+                            <div class="bdg-infinite-end" role="row">
+                                <span>— End of results —</span>
+                            </div>
+                        }
+                    }
                 }
                 else if (UseVirtualization)
                 {

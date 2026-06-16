@@ -229,6 +229,28 @@
 }
 @keyframes bdg-spin { to { transform: rotate(360deg); } }
 
+/* ------------------------------------------ Infinite-scroll placeholder */
+.bdg-placeholder-cell { display: flex; align-items: center; }
+.bdg-skeleton {
+    display: block;
+    width: 60%;
+    height: 10px;
+    border-radius: 6px;
+    background: linear-gradient(90deg,
+        var(--bdg-border) 25%,
+        light-dark(#eef1f4, #2a2e35) 37%,
+        var(--bdg-border) 63%);
+    background-size: 400% 100%;
+    animation: bdg-shimmer 1.2s ease-in-out infinite;
+}
+@keyframes bdg-shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+.bdg-infinite-end {
+    padding: 14px;
+    text-align: center;
+    color: var(--bdg-muted);
+    font-size: 13px;
+}
+
 /* ---------------------------------------------------------- Editors */
 .bdg-editor, .bdg-filter-input {
     width: 100%;

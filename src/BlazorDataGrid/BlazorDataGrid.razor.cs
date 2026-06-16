@@ -2,6 +2,7 @@ using System.Globalization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.Web.Virtualization;
+using Microsoft.JSInterop;
 
 namespace BlazorDataGrid;
 
@@ -11,13 +12,29 @@ namespace BlazorDataGrid;
 /// columns, grouping, aggregates and theming.
 /// </summary>
 /// <typeparam name="TItem">The row item type.</typeparam>
-public partial class BlazorDataGrid<TItem> : ComponentBase
+public partial class BlazorDataGrid<TItem> : ComponentBase, IAsyncDisposable
 {
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+
     // ---------------------------------------------------------------- Data
     [Parameter] public IEnumerable<TItem>? Items { get; set; }
 
     /// <summary>Server-side data callback. When set, the grid delegates sort/filter/page to the caller.</summary>
     [Parameter] public Func<BlazorDataGridReadRequest, Task<BlazorDataGridReadResult<TItem>>>? OnRead { get; set; }
+
+    /// <summary>
+    /// Infinite-scrolling data callback. When set, the grid loads rows in batches and appends the
+    /// next batch automatically as the user scrolls to the end of the viewport — with no paging UI
+    /// and no knowledge of the total row count. Each call receives a <see cref="BlazorDataGridReadRequest"/>
+    /// whose <c>Skip</c> is the number of rows already loaded and whose <c>Take</c> is
+    /// <see cref="LoadMoreBatchSize"/>. The grid stops requesting more once a batch returns fewer rows
+    /// than requested (signalling the end of the data). Mirrors react-data-grid's Infinite Scrolling.
+    /// Requires a fixed <see cref="Height"/>. The returned <c>TotalCount</c> is ignored in this mode.
+    /// </summary>
+    [Parameter] public Func<BlazorDataGridReadRequest, Task<BlazorDataGridReadResult<TItem>>>? OnLoadMore { get; set; }
+
+    /// <summary>Number of rows fetched per batch in infinite-scrolling mode. Default: 50.</summary>
+    [Parameter] public int LoadMoreBatchSize { get; set; } = 50;
 
     /// <summary>Column definitions and other declarative children.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
@@ -187,10 +204,21 @@ public partial class BlazorDataGrid<TItem> : ComponentBase
     private BlazorDataGridColumn<TItem>? _dragColumn;
     private TItem? _dragRow;
 
+    // infinite scrolling
+    private readonly List<TItem> _infiniteItems = new();
+    private bool _infiniteHasMore = true;
+    private bool _infiniteLoading;
+    private ElementReference _infiniteViewport;
+    private DotNetObjectReference<BlazorDataGrid<TItem>>? _infiniteSelfRef;
+    private IJSObjectReference? _infiniteModule;
+    private IJSObjectReference? _infiniteHandle;
+    private bool _infiniteObserverAttached;
+
     internal IReadOnlyList<BlazorDataGridColumn<TItem>> AllColumns => _columns;
     internal IReadOnlyList<BlazorDataGridColumn<TItem>> VisibleColumns => _columns.Where(c => c.Visible).ToList();
     internal IReadOnlyList<BlazorDataGridSortDescriptor> Sorts => _sorts;
     internal bool IsServerMode => OnRead is not null;
+    internal bool IsInfiniteMode => OnLoadMore is not null;
     internal bool IsTreeMode => ChildrenSelector is not null;
     internal bool IsEditing(TItem item) => _editItem is not null && KeyEquals(_editItem, item);
     internal bool IsRowSelected(TItem item) => _selected.Contains(item);
@@ -245,6 +273,14 @@ public partial class BlazorDataGrid<TItem> : ComponentBase
     /// <summary>Recomputes the data view (filter → sort → group → page).</summary>
     public async Task RefreshAsync()
     {
+        if (IsInfiniteMode)
+        {
+            // True infinite scroll: reset the accumulated rows and load the first batch.
+            // Further batches are appended as the user scrolls toward the end.
+            await ResetInfiniteAsync();
+            return;
+        }
+
         if (IsServerMode)
         {
             await LoadServerDataAsync();
@@ -365,6 +401,111 @@ public partial class BlazorDataGrid<TItem> : ComponentBase
         if (!IsTreeMode) return;
         _expandedTree.Clear();
         await RefreshAsync();
+    }
+
+    // --------------------------------------------------- Infinite scrolling
+    internal IReadOnlyList<TItem> InfiniteItems => _infiniteItems;
+    internal bool InfiniteLoading => _infiniteLoading;
+    internal bool InfiniteHasMore => _infiniteHasMore;
+
+    /// <summary>Clears the accumulated rows and (re)loads the first batch. Used on init and whenever
+    /// sorting/filtering changes in infinite-scrolling mode.</summary>
+    private async Task ResetInfiniteAsync()
+    {
+        _infiniteItems.Clear();
+        _infiniteHasMore = true;
+        _infiniteLoading = false;
+        _view = _infiniteItems;
+        _pageItems = _infiniteItems;
+
+        if (_infiniteHandle is not null)
+        {
+            try { await _infiniteHandle.InvokeVoidAsync("scrollToTop"); }
+            catch (JSException) { }
+            catch (JSDisconnectedException) { }
+        }
+
+        await LoadNextBatchAsync();
+    }
+
+    /// <summary>
+    /// Appends the next batch of rows. No total count is assumed: the end of the data is detected
+    /// when a batch returns fewer rows than requested (or none at all). Re-entrancy is guarded so
+    /// rapid scroll events coalesce into a single in-flight request.
+    /// </summary>
+    private async Task LoadNextBatchAsync()
+    {
+        if (OnLoadMore is null || _infiniteLoading || !_infiniteHasMore) return;
+
+        _infiniteLoading = true;
+        StateHasChanged();
+
+        var batch = Math.Max(1, LoadMoreBatchSize);
+        var read = new BlazorDataGridReadRequest
+        {
+            Skip = _infiniteItems.Count,
+            Take = batch,
+            Sorts = _sorts.Where(s => s.Direction != BlazorDataGridSortDirection.None).OrderBy(s => s.Priority).ToList(),
+            Filters = _filters.ToList()
+        };
+
+        var result = await OnLoadMore(read);
+        var loaded = result.Items;
+        _infiniteItems.AddRange(loaded);
+        if (loaded.Count < batch) _infiniteHasMore = false;
+
+        _view = _infiniteItems;
+        _pageItems = _infiniteItems;
+        _footerAggregates = BlazorDataGridDataProcessor.Aggregate(_infiniteItems, _columns);
+
+        _infiniteLoading = false;
+        StateHasChanged();
+    }
+
+    /// <summary>Invoked from JavaScript when the viewport is scrolled near its end.</summary>
+    [JSInvokable]
+    public async Task OnInfiniteScrollNearEndAsync()
+    {
+        if (!IsInfiniteMode) return;
+        await LoadNextBatchAsync();
+        // If the freshly loaded rows still don't fill the viewport, keep loading until they do
+        // (or the data runs out). The JS re-check fires this method again only while near the end.
+        if (_infiniteHasMore && _infiniteHandle is not null)
+        {
+            try { await _infiniteHandle.InvokeVoidAsync("check"); }
+            catch (JSException) { }
+            catch (JSDisconnectedException) { }
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (IsInfiniteMode && !_infiniteObserverAttached)
+        {
+            _infiniteObserverAttached = true;
+            _infiniteSelfRef ??= DotNetObjectReference.Create(this);
+            _infiniteModule ??= await JS.InvokeAsync<IJSObjectReference>(
+                "import", "./_content/BlazorDataGrid/blazordatagrid.js");
+            _infiniteHandle = await _infiniteModule.InvokeAsync<IJSObjectReference>(
+                "initInfiniteScroll", _infiniteViewport, _infiniteSelfRef, 200);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_infiniteHandle is not null)
+            {
+                await _infiniteHandle.InvokeVoidAsync("dispose");
+                await _infiniteHandle.DisposeAsync();
+            }
+            if (_infiniteModule is not null) await _infiniteModule.DisposeAsync();
+        }
+        catch (JSDisconnectedException) { }
+        catch (JSException) { }
+        _infiniteSelfRef?.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     private async Task LoadServerDataAsync()

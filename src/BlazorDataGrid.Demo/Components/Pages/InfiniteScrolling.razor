@@ -1,0 +1,73 @@
+@page "/infinite-scrolling"
+@using BlazorDataGrid.Demo.Data
+
+<PageTitle>Infinite Scrolling</PageTitle>
+
+<h1>Infinite scrolling</h1>
+<p class="lead">Append the next batch of rows automatically as the user scrolls to the end.</p>
+
+<p>
+    Set <code>OnLoadMore</code> instead of binding <code>Items</code>. The grid keeps an accumulating
+    list of rows and asks your callback for the next batch whenever the viewport nears its end —
+    without ever needing a total row count. <code>Skip</code> is the number of rows already loaded and
+    <code>Take</code> is <code>LoadMoreBatchSize</code>. Return fewer rows than requested to signal the
+    end of the data. A fixed <code>Height</code> is required.
+</p>
+
+<div class="card">
+    <BlazorDataGrid TItem="Product" OnLoadMore="LoadMore" LoadMoreBatchSize="40"
+              Height="520px" RowHeight="40" Sortable="true">
+        <BlazorDataGridColumn TItem="Product" Field="Id" Title="ID" Width="90px" Align="BlazorDataGridColumnAlign.Right" />
+        <BlazorDataGridColumn TItem="Product" Field="Name" Width="240px" />
+        <BlazorDataGridColumn TItem="Product" Field="Category" />
+        <BlazorDataGridColumn TItem="Product" Field="Supplier" />
+        <BlazorDataGridColumn TItem="Product" Field="Price" Format="C2" Align="BlazorDataGridColumnAlign.Right" />
+        <BlazorDataGridColumn TItem="Product" Field="Stock" Align="BlazorDataGridColumnAlign.Right" />
+        <BlazorDataGridColumn TItem="Product" Field="Rating" Format="N1" Align="BlazorDataGridColumnAlign.Right" />
+    </BlazorDataGrid>
+</div>
+
+<p class="hint">@_log</p>
+
+@code {
+    // A backing store we page through. In a real app this would be a database/API query.
+    // The grid never sees its size — it just keeps asking for the next batch.
+    private readonly List<Product> _all = SampleData.Generate(2_000);
+    private string _log = "Scroll down to load more…";
+    private int _requests;
+
+    private async Task<BlazorDataGridReadResult<Product>> LoadMore(BlazorDataGridReadRequest request)
+    {
+        await Task.Delay(350); // simulate network/database latency so the skeleton row is visible
+
+        IEnumerable<Product> query = _all;
+
+        var sort = request.Sorts.FirstOrDefault();
+        if (sort is not null)
+        {
+            Func<Product, object> key = sort.ColumnId switch
+            {
+                nameof(Product.Name) => p => p.Name,
+                nameof(Product.Category) => p => p.Category,
+                nameof(Product.Supplier) => p => p.Supplier,
+                nameof(Product.Price) => p => p.Price,
+                nameof(Product.Stock) => p => p.Stock,
+                nameof(Product.Rating) => p => p.Rating,
+                _ => p => p.Id
+            };
+            query = sort.Direction == BlazorDataGridSortDirection.Descending
+                ? query.OrderByDescending(key)
+                : query.OrderBy(key);
+        }
+
+        var batch = query.Skip(request.Skip).Take(request.Take ?? 40).ToList();
+
+        _requests++;
+        var end = request.Skip + batch.Count;
+        _log = $"Batch #{_requests} → loaded rows {request.Skip + 1}–{end} ({batch.Count} rows)";
+        await InvokeAsync(StateHasChanged);
+
+        // TotalCount is ignored in infinite mode; the grid stops when a batch is short.
+        return new BlazorDataGridReadResult<Product>(batch, 0);
+    }
+}

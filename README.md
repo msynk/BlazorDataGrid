@@ -12,8 +12,10 @@ The component takes its feature inspiration from the leading grids on the web
 - A **pure-Blazor pointer overlay** for column resizing (zero custom JavaScript)
 - **`light-dark()`** CSS + custom properties for theming
 
-> There is **no custom `.js` file** in the library at all. CSV export uses a
-> `data:` URL `<a download>` link, so even exporting needs no JS interop.
+> The library ships a single tiny `.js` module used **only** for infinite scrolling —
+> the one feature that genuinely needs to read scroll position (which Blazor's scroll
+> events don't expose). Everything else, including CSV export (a `data:` URL
+> `<a download>` link), works with no JS interop.
 
 ## Features
 
@@ -24,6 +26,7 @@ The component takes its feature inspiration from the leading grids on the web
 | Filtering | Per-column quick filters + rich `BlazorDataGridFilterOperator` API |
 | Paging | Configurable page sizes, top/bottom pager |
 | Virtualization | Smooth rendering of 100k+ rows |
+| Infinite scrolling | Append the next batch on scroll via `OnLoadMore` — no total count or paging UI needed |
 | Selection | Single / multiple, select-all header checkbox, per-row selection disabling, two-way binding |
 | Editing | Add / edit / save / cancel / delete, type-aware editors, `EditTemplate` |
 | Grouping | Collapsible **multi-level** row groups with per-group aggregates |
@@ -34,6 +37,7 @@ The component takes its feature inspiration from the leading grids on the web
 | Events | Row click + **cell click / double-click / context-menu** callbacks |
 | Keyboard | **Cell navigation** with roving tabindex: arrows, `Home`/`End`, `Ctrl`+`Home`/`End`, `PageUp`/`PageDown`, `Enter`/`F2` to edit, `Esc` to cancel |
 | Templates | Cell, header, editor, footer and expandable detail-row templates |
+| Master detail | Expand rows to reveal nested detail content — including a nested grid — via `DetailTemplate` |
 | Theming | CSS variable tokens, automatic light/dark, RTL support |
 | Export | One-click CSV of the current view |
 | A11y | ARIA grid roles, keyboard-friendly controls |

@@ -166,3 +166,15 @@ pre code {
 }
 #blazor-error-ui .reload { color: #0a58ca; }
 #blazor-error-ui .dismiss { cursor: pointer; float: right; }
+
+/* ---------------------------------------------------- Master detail demo */
+.md-detail { display: flex; flex-direction: column; gap: 12px; }
+.md-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    padding: 4px 2px 2px;
+}
+.md-summary > div { display: flex; flex-direction: column; }
+.md-label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+.md-value { font-size: 18px; font-weight: 600; }
