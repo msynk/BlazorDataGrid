@@ -1,11 +1,22 @@
 @typeparam TItem
 @namespace BlazorDataGrid
 
-<div class="@RowClass" role="row" style="@RowStyle" @onclick="OnRowClick">
+<div class="@RowClass" role="row" style="@RowStyle" @onclick="OnRowClick"
+     draggable="@(Grid.RowReorderable ? "true" : null)"
+     @ondragstart="() => Grid.StartRowDrag(Item)"
+     @ondragover:preventDefault="Grid.RowReorderable"
+     @ondrop="() => Grid.DropRowAsync(Item)">
+
+    @if (Grid.RowReorderable)
+    {
+        <div class="bdg-cell bdg-cell-reorder bdg-sticky" style="left:0;" role="gridcell" @onclick:stopPropagation="true">
+            <span class="bdg-drag-handle" title="Drag to reorder">⠿</span>
+        </div>
+    }
 
     @if (Grid.HasDetailColumn)
     {
-        <div class="bdg-cell bdg-cell-detail bdg-sticky" style="left:0;" role="gridcell" @onclick:stopPropagation="true">
+        <div class="bdg-cell bdg-cell-detail bdg-sticky" style="@Grid.DetailStickyStyle" role="gridcell" @onclick:stopPropagation="true">
             <button type="button" class="bdg-icon-btn" @onclick="() => Grid.ToggleDetail(Item)" aria-label="Toggle details">
                 @(Grid.IsDetailExpanded(Item) ? "▾" : "▸")
             </button>
@@ -14,14 +25,28 @@
 
     @if (Grid.HasSelectColumn)
     {
-        <div class="bdg-cell bdg-cell-select bdg-sticky" style="@SelectStickyStyle" role="gridcell" @onclick:stopPropagation="true">
-            <input type="checkbox" checked="@Selected" @onchange="e => Grid.ToggleRowSelectionAsync(Item, (bool)e.Value!)" />
+        <div class="bdg-cell bdg-cell-select bdg-sticky" style="@Grid.SelectStickyStyle" role="gridcell" @onclick:stopPropagation="true">
+            <input type="checkbox" checked="@Selected" disabled="@(!Grid.CanSelectRow(Item))"
+                   @onchange="e => Grid.ToggleRowSelectionAsync(Item, (bool)e.Value!)" />
         </div>
     }
 
-    @foreach (var column in Grid.VisibleColumns)
+    @{
+        var cols = Grid.VisibleColumns;
+        var skip = 0;
+    }
+    @for (int ci = 0; ci < cols.Count; ci++)
     {
-        <div class="@CellClass(column)" role="gridcell" style="@Grid.FrozenStyle(column)">
+        if (skip > 0) { skip--; continue; }
+        var column = cols[ci];
+        var span = Grid.ResolveColSpan(column, Item);
+        if (span > 1) skip = span - 1;
+        var cellStyle = Grid.FrozenStyle(column) + (span > 1 ? $"grid-column:span {span};" : "");
+        <div class="@CellClass(column)" role="gridcell" style="@cellStyle"
+             @onclick="e => OnCellClick(column, e)"
+             @ondblclick="e => Grid.HandleCellDoubleClickAsync(column, Item, e)"
+             @oncontextmenu="e => Grid.HandleCellContextMenuAsync(column, Item, e)"
+             @oncontextmenu:preventDefault="Grid.OnCellContextMenu.HasDelegate">
             @if (Editing && Grid.ColumnEditable(column))
             {
                 @if (column.EditTemplate is not null)
@@ -89,9 +114,7 @@
     }
 
     private string RowStyle =>
-        $"grid-template-columns:var(--bdg-template);min-height:{Grid.RowHeight.ToString(System.Globalization.CultureInfo.InvariantCulture)}px;";
-
-    private string SelectStickyStyle => Grid.HasDetailColumn ? "left:44px;" : "left:0;";
+        $"grid-template-columns:var(--bdg-template);min-height:{Grid.ResolveRowHeight(Item).ToString(System.Globalization.CultureInfo.InvariantCulture)}px;";
 
     private string CellClass(BlazorDataGridColumn<TItem> column)
     {
@@ -102,4 +125,7 @@
     }
 
     private Task OnRowClick() => Grid.HandleRowClickAsync(Item);
+
+    private async Task OnCellClick(BlazorDataGridColumn<TItem> column, MouseEventArgs e)
+        => await Grid.HandleCellClickAsync(column, Item, e);
 }

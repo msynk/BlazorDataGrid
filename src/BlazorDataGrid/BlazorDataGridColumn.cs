@@ -26,7 +26,16 @@ public class BlazorDataGridColumn<TItem> : ComponentBase, IDisposable
 
     [Parameter] public int MinWidth { get; set; } = 60;
 
+    /// <summary>Maximum width in pixels the column can be resized to. When null the column is unbounded.</summary>
+    [Parameter] public int? MaxWidth { get; set; }
+
     [Parameter] public bool? Sortable { get; set; }
+
+    /// <summary>
+    /// When true, the first click on the header sorts descending instead of ascending.
+    /// Mirrors react-data-grid's <c>sortDescendingFirst</c>.
+    /// </summary>
+    [Parameter] public bool SortDescendingFirst { get; set; }
     [Parameter] public bool? Filterable { get; set; }
     [Parameter] public bool? Resizable { get; set; }
     [Parameter] public bool? Reorderable { get; set; }
@@ -35,6 +44,18 @@ public class BlazorDataGridColumn<TItem> : ComponentBase, IDisposable
 
     /// <summary>Pin the column to the start edge so it stays visible while scrolling horizontally.</summary>
     [Parameter] public bool Frozen { get; set; }
+
+    /// <summary>
+    /// Optional header group name. Consecutive columns sharing the same value are rendered
+    /// under a single spanning header cell. Mirrors react-data-grid's column groups.
+    /// </summary>
+    [Parameter] public string? Group { get; set; }
+
+    /// <summary>
+    /// Optional per-row column span. Returns how many columns the cell should occupy
+    /// (>= 1), or null/1 for no spanning. Mirrors react-data-grid's <c>colSpan</c>.
+    /// </summary>
+    [Parameter] public Func<TItem, int?>? ColSpan { get; set; }
 
     [Parameter] public bool Visible { get; set; } = true;
 

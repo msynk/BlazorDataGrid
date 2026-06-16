@@ -1,0 +1,60 @@
+@page "/column-spanning"
+
+<PageTitle>Column Spanning</PageTitle>
+
+<h1>Column spanning</h1>
+<p class="lead">Let a single cell span several columns based on its row — react-data-grid's <code>colSpan</code>.</p>
+
+<p>
+    Provide a <code>ColSpan</code> function on a column. It receives the row and returns how many
+    columns that cell should occupy. Here, discontinued products show a full-width banner in the
+    <strong>Name</strong> column, and premium products merge Price + Stock.
+</p>
+
+<div class="card">
+    <BlazorDataGrid TItem="Product" Items="_products" Height="460px" Bordered="true">
+        <BlazorDataGridColumn TItem="Product" Field="Id" Title="ID" Width="70px" Align="BlazorDataGridColumnAlign.Right" />
+        <BlazorDataGridColumn TItem="Product" Field="Name" Width="220px" ColSpan="NameSpan">
+            <Template Context="p">
+                @if (p.Discontinued)
+                {
+                    <span class="span-banner">⚠ @p.Name — discontinued (no further details)</span>
+                }
+                else
+                {
+                    @p.Name
+                }
+            </Template>
+        </BlazorDataGridColumn>
+        <BlazorDataGridColumn TItem="Product" Field="Category" />
+        <BlazorDataGridColumn TItem="Product" Field="Price" Format="C2" Align="BlazorDataGridColumnAlign.Right" ColSpan="PriceSpan">
+            <Template Context="p">
+                @if (p.Price > 800)
+                {
+                    <span class="span-banner">★ Premium: @p.Price.ToString("C2") · @p.Stock in stock</span>
+                }
+                else
+                {
+                    @p.Price.ToString("C2")
+                }
+            </Template>
+        </BlazorDataGridColumn>
+        <BlazorDataGridColumn TItem="Product" Field="Stock" Align="BlazorDataGridColumnAlign.Right" />
+    </BlazorDataGrid>
+</div>
+
+<p class="hint">Discontinued rows span the Name cell over Category; premium rows span Price over Stock.</p>
+
+<style>
+    .span-banner { font-weight: 600; color: var(--accent); }
+</style>
+
+@code {
+    private List<Product> _products = SampleData.Generate(40);
+
+    // Discontinued products: Name spans 2 columns (Name + Category).
+    private int? NameSpan(Product p) => p.Discontinued ? 2 : null;
+
+    // Premium products: Price spans 2 columns (Price + Stock).
+    private int? PriceSpan(Product p) => p.Price > 800 ? 2 : null;
+}

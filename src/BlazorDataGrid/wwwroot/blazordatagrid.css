@@ -166,6 +166,29 @@
 .bdg-group-count { color: var(--bdg-muted); }
 .bdg-group-agg { color: var(--bdg-muted); font-size: 12px; }
 
+/* Nested groups: subtle indentation shading by level */
+.bdg-group-row .bdg-group-cell { border-left: 3px solid transparent; }
+.bdg-group-row[style*="--bdg-group-level:0"] .bdg-group-cell { border-left-color: var(--bdg-accent); }
+
+/* ----------------------------------------------- Grouped column headers */
+.bdg-group-header-row { background: var(--bdg-header-bg); border-bottom: 1px solid var(--bdg-border); }
+.bdg-group-header {
+    font-weight: 700;
+    background: var(--bdg-header-bg);
+    border-right: 1px solid var(--bdg-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--bdg-cell-pad);
+}
+.bdg-group-header-empty { background: transparent; border-right: none; }
+
+/* ---------------------------------------------------------- Row reorder */
+.bdg-cell-reorder { display: flex; align-items: center; justify-content: center; }
+.bdg-drag-handle { cursor: grab; color: var(--bdg-muted); user-select: none; }
+.bdg-drag-handle:active { cursor: grabbing; }
+.bdg-row[draggable="true"] { cursor: grab; }
+
 /* ---------------------------------------------------------- Detail rows */
 .bdg-detail-row { border-bottom: 1px solid var(--bdg-border); }
 .bdg-detail-content { padding: 12px 16px; background: light-dark(#fbfcfd, #1a1d22); }

@@ -20,15 +20,17 @@ The component takes its feature inspiration from the leading grids on the web
 | Area | Capabilities |
 |------|--------------|
 | Data | Strongly-typed generic binding, nested property paths, server-side `OnRead` |
-| Sorting | Single &amp; multi-column (Ctrl/⌘+click) with priority badges |
+| Sorting | Single &amp; multi-column (Ctrl/⌘+click) with priority badges, per-column descending-first |
 | Filtering | Per-column quick filters + rich `BlazorDataGridFilterOperator` API |
 | Paging | Configurable page sizes, top/bottom pager |
 | Virtualization | Smooth rendering of 100k+ rows |
-| Selection | Single / multiple, select-all header checkbox, two-way binding |
+| Selection | Single / multiple, select-all header checkbox, per-row selection disabling, two-way binding |
 | Editing | Add / edit / save / cancel / delete, type-aware editors, `EditTemplate` |
-| Grouping | Collapsible groups with per-group aggregates |
+| Grouping | Collapsible **multi-level** row groups with per-group aggregates |
 | Aggregates | Sum, Average, Count, Min, Max footer rows |
-| Columns | Resize, reorder, freeze/pin, show/hide chooser, alignment, formatting |
+| Columns | Resize (min/max width), reorder, freeze/pin, **header groups**, **cell spanning**, show/hide chooser, alignment, formatting |
+| Rows | Fixed or per-row dynamic heights, **drag-and-drop reordering** |
+| Events | Row click + **cell click / double-click / context-menu** callbacks |
 | Templates | Cell, header, editor, footer and expandable detail-row templates |
 | Theming | CSS variable tokens, automatic light/dark, RTL support |
 | Export | One-click CSV of the current view |

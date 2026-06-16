@@ -1,5 +1,6 @@
 using System.Globalization;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.Web.Virtualization;
 
 namespace BlazorDataGrid;
@@ -49,11 +50,40 @@ public partial class BlazorDataGrid<TItem> : ComponentBase
     [Parameter] public bool ShowColumnChooser { get; set; }
     [Parameter] public bool ShowCsvExport { get; set; }
 
+    /// <summary>
+    /// Enables drag-and-drop row reordering using native HTML drag-and-drop (no JS interop).
+    /// Provide <see cref="OnRowReorder"/> to persist the new order.
+    /// </summary>
+    [Parameter] public bool RowReorderable { get; set; }
+
+    /// <summary>
+    /// Raised when a row is dropped onto another row during reordering. The grid reorders the
+    /// bound <see cref="Items"/> list in place when it is a mutable <see cref="IList{T}"/>;
+    /// use this callback to persist or override the change.
+    /// </summary>
+    [Parameter] public EventCallback<BlazorDataGridRowReorderEventArgs<TItem>> OnRowReorder { get; set; }
+
     // ------------------------------------------------------------- Selection
     [Parameter] public BlazorDataGridSelectionMode SelectionMode { get; set; } = BlazorDataGridSelectionMode.None;
     [Parameter] public IReadOnlyList<TItem>? SelectedItems { get; set; }
     [Parameter] public EventCallback<IReadOnlyList<TItem>> SelectedItemsChanged { get; set; }
     [Parameter] public EventCallback<TItem> OnRowClick { get; set; }
+
+    /// <summary>Raised when a data cell is clicked.</summary>
+    [Parameter] public EventCallback<BlazorDataGridCellEventArgs<TItem>> OnCellClick { get; set; }
+
+    /// <summary>Raised when a data cell is double-clicked.</summary>
+    [Parameter] public EventCallback<BlazorDataGridCellEventArgs<TItem>> OnCellDoubleClick { get; set; }
+
+    /// <summary>Raised when a data cell is right-clicked. Useful for custom context menus.</summary>
+    [Parameter] public EventCallback<BlazorDataGridCellEventArgs<TItem>> OnCellContextMenu { get; set; }
+
+    /// <summary>
+    /// Optional predicate that returns <c>true</c> when a given row may not be selected.
+    /// Mirrors react-data-grid's <c>isRowSelectionDisabled</c>; such rows are skipped by
+    /// select-all and render a disabled checkbox.
+    /// </summary>
+    [Parameter] public Func<TItem, bool>? IsRowSelectionDisabled { get; set; }
 
     // --------------------------------------------------------------- Paging
     [Parameter] public bool Pageable { get; set; }
@@ -64,6 +94,13 @@ public partial class BlazorDataGrid<TItem> : ComponentBase
     // --------------------------------------------------------- Virtualization
     [Parameter] public bool Virtualize { get; set; }
     [Parameter] public float RowHeight { get; set; } = 36f;
+
+    /// <summary>
+    /// Optional per-row height selector (in pixels). Mirrors react-data-grid's functional
+    /// <c>rowHeight</c>. Ignored while <see cref="Virtualize"/> is enabled, which requires a
+    /// uniform <see cref="RowHeight"/>.
+    /// </summary>
+    [Parameter] public Func<TItem, float>? RowHeightSelector { get; set; }
 
     // -------------------------------------------------------------- Editing
     [Parameter] public bool Editable { get; set; }
@@ -117,6 +154,7 @@ public partial class BlazorDataGrid<TItem> : ComponentBase
 
     // reordering
     private BlazorDataGridColumn<TItem>? _dragColumn;
+    private TItem? _dragRow;
 
     internal IReadOnlyList<BlazorDataGridColumn<TItem>> AllColumns => _columns;
     internal IReadOnlyList<BlazorDataGridColumn<TItem>> VisibleColumns => _columns.Where(c => c.Visible).ToList();
@@ -259,11 +297,16 @@ public partial class BlazorDataGrid<TItem> : ComponentBase
 
         if (existing is null)
         {
-            _sorts.Add(new BlazorDataGridSortDescriptor { ColumnId = column.Id, Direction = BlazorDataGridSortDirection.Ascending, Priority = _sorts.Count + 1 });
+            var initial = column.SortDescendingFirst
+                ? BlazorDataGridSortDirection.Descending
+                : BlazorDataGridSortDirection.Ascending;
+            _sorts.Add(new BlazorDataGridSortDescriptor { ColumnId = column.Id, Direction = initial, Priority = _sorts.Count + 1 });
         }
-        else if (existing.Direction == BlazorDataGridSortDirection.Ascending)
+        else if (existing.Direction == (column.SortDescendingFirst ? BlazorDataGridSortDirection.Descending : BlazorDataGridSortDirection.Ascending))
         {
-            existing.Direction = BlazorDataGridSortDirection.Descending;
+            existing.Direction = column.SortDescendingFirst
+                ? BlazorDataGridSortDirection.Ascending
+                : BlazorDataGridSortDirection.Descending;
         }
         else
         {
@@ -323,7 +366,7 @@ public partial class BlazorDataGrid<TItem> : ComponentBase
         var existing = _groups.FirstOrDefault(g => g.ColumnId == column.Id);
         if (existing is null)
         {
-            _groups.Clear(); // single-level grouping
+            // Append as the next (nested) grouping level.
             _groups.Add(new BlazorDataGridGroupDescriptor { ColumnId = column.Id });
         }
         else
@@ -333,21 +376,37 @@ public partial class BlazorDataGrid<TItem> : ComponentBase
         await RefreshAsync();
     }
 
-    internal bool IsGroupCollapsed(BlazorDataGridGroup<TItem> group) => _collapsedGroups.Contains(group.Key ?? NullKey);
-    private static readonly object NullKey = new();
+    /// <summary>Removes all active groupings.</summary>
+    public async Task ClearGroupsAsync()
+    {
+        if (_groups.Count == 0) return;
+        _groups.Clear();
+        await RefreshAsync();
+    }
+
+    internal int GroupLevel(BlazorDataGridColumn<TItem> column)
+    {
+        var idx = _groups.FindIndex(g => g.ColumnId == column.Id);
+        return idx < 0 ? -1 : idx + 1;
+    }
+
+    internal bool IsGroupCollapsed(BlazorDataGridGroup<TItem> group) => _collapsedGroups.Contains(group.Path);
     internal void ToggleGroup(BlazorDataGridGroup<TItem> group)
     {
-        var key = group.Key ?? NullKey;
-        if (!_collapsedGroups.Add(key)) _collapsedGroups.Remove(key);
+        if (!_collapsedGroups.Add(group.Path)) _collapsedGroups.Remove(group.Path);
         StateHasChanged();
     }
 
     // ---------------------------------------------------------- Selection
     internal bool SelectionEnabled => SelectionMode != BlazorDataGridSelectionMode.None;
 
+    /// <summary>True when the given row is allowed to be selected.</summary>
+    internal bool CanSelectRow(TItem item) => IsRowSelectionDisabled is null || !IsRowSelectionDisabled(item);
+
     internal async Task ToggleRowSelectionAsync(TItem item, bool? value = null)
     {
         if (SelectionMode == BlazorDataGridSelectionMode.None) return;
+        if (!CanSelectRow(item)) return;
         var selected = value ?? !_selected.Contains(item);
         if (SelectionMode == BlazorDataGridSelectionMode.Single)
         {
@@ -361,13 +420,14 @@ public partial class BlazorDataGrid<TItem> : ComponentBase
         await NotifySelectionAsync();
     }
 
-    internal bool AllPageSelected => _pageItems.Count > 0 && _pageItems.All(_selected.Contains);
-    internal bool SomePageSelected => _pageItems.Any(_selected.Contains) && !AllPageSelected;
+    internal bool AllPageSelected => _pageItems.Where(CanSelectRow).Any() && _pageItems.Where(CanSelectRow).All(_selected.Contains);
+    internal bool SomePageSelected => _pageItems.Where(CanSelectRow).Any(_selected.Contains) && !AllPageSelected;
 
     internal async Task ToggleSelectAllAsync(bool value)
     {
         foreach (var item in _pageItems)
         {
+            if (!CanSelectRow(item)) continue;
             if (value) _selected.Add(item); else _selected.Remove(item);
         }
         await NotifySelectionAsync();
@@ -485,6 +545,7 @@ public partial class BlazorDataGrid<TItem> : ComponentBase
         var delta = clientX - _resizeStartX;
         if (Direction == BlazorDataGridDirection.Rtl) delta = -delta;
         var newWidth = Math.Max(_resizingColumn.MinWidth, _resizeStartWidth + delta);
+        if (_resizingColumn.MaxWidth is { } max) newWidth = Math.Min(max, newWidth);
         _resizingColumn.ResizedWidth = newWidth;
         StateHasChanged();
     }
@@ -522,6 +583,118 @@ public partial class BlazorDataGrid<TItem> : ComponentBase
 
     internal bool ColumnResizable(BlazorDataGridColumn<TItem> column) => column.Resizable ?? Resizable;
     internal bool ColumnReorderable(BlazorDataGridColumn<TItem> column) => column.Reorderable ?? Reorderable;
+
+    // ----------------------------------------------------- Row reordering
+    internal void StartRowDrag(TItem row) => _dragRow = row;
+
+    internal async Task DropRowAsync(TItem target)
+    {
+        if (_dragRow is null || EqualityComparer<TItem>.Default.Equals(_dragRow, target)) { _dragRow = default; return; }
+
+        var dragged = _dragRow;
+        _dragRow = default;
+
+        // Determine indices within the bound source.
+        if (Items is IList<TItem> list)
+        {
+            var from = list.IndexOf(dragged);
+            var to = list.IndexOf(target);
+            if (from < 0 || to < 0) return;
+
+            if (!list.IsReadOnly)
+            {
+                list.RemoveAt(from);
+                list.Insert(to, dragged);
+            }
+
+            if (OnRowReorder.HasDelegate)
+                await OnRowReorder.InvokeAsync(new BlazorDataGridRowReorderEventArgs<TItem>
+                {
+                    DraggedItem = dragged,
+                    TargetItem = target,
+                    FromIndex = from,
+                    ToIndex = to
+                });
+
+            await RefreshAsync();
+        }
+        else if (OnRowReorder.HasDelegate)
+        {
+            await OnRowReorder.InvokeAsync(new BlazorDataGridRowReorderEventArgs<TItem>
+            {
+                DraggedItem = dragged,
+                TargetItem = target,
+                FromIndex = -1,
+                ToIndex = -1
+            });
+        }
+    }
+
+    // -------------------------------------------------------- Cell events
+    internal async Task HandleCellClickAsync(BlazorDataGridColumn<TItem> column, TItem item, MouseEventArgs e)
+    {
+        if (OnCellClick.HasDelegate)
+            await OnCellClick.InvokeAsync(MakeCellArgs(column, item, e));
+    }
+
+    internal async Task HandleCellDoubleClickAsync(BlazorDataGridColumn<TItem> column, TItem item, MouseEventArgs e)
+    {
+        if (OnCellDoubleClick.HasDelegate)
+            await OnCellDoubleClick.InvokeAsync(MakeCellArgs(column, item, e));
+    }
+
+    internal async Task HandleCellContextMenuAsync(BlazorDataGridColumn<TItem> column, TItem item, MouseEventArgs e)
+    {
+        if (OnCellContextMenu.HasDelegate)
+            await OnCellContextMenu.InvokeAsync(MakeCellArgs(column, item, e));
+    }
+
+    internal bool HasCellEvents => OnCellClick.HasDelegate || OnCellDoubleClick.HasDelegate || OnCellContextMenu.HasDelegate;
+
+    private BlazorDataGridCellEventArgs<TItem> MakeCellArgs(BlazorDataGridColumn<TItem> column, TItem item, MouseEventArgs e)
+        => new() { Item = item, Column = column, Value = column.GetValue(item), Mouse = e };
+
+    // ----------------------------------------------------- Column spanning
+    /// <summary>Resolves the effective column span for a data cell (clamped to remaining columns).</summary>
+    internal int ResolveColSpan(BlazorDataGridColumn<TItem> column, TItem item)
+    {
+        if (column.ColSpan is null) return 1;
+        var span = column.ColSpan(item) ?? 1;
+        if (span < 1) span = 1;
+        var cols = VisibleColumns;
+        var idx = cols.ToList().IndexOf(column);
+        if (idx < 0) return 1;
+        return Math.Min(span, cols.Count - idx);
+    }
+
+    // ------------------------------------------------- Column header groups
+    internal bool HasColumnGroups => VisibleColumns.Any(c => !string.IsNullOrEmpty(c.Group));
+
+    /// <summary>Builds the contiguous spans of the grouped header row (group name + column count).</summary>
+    internal IReadOnlyList<(string? Name, int Span)> ColumnGroupSpans()
+    {
+        var spans = new List<(string?, int)>();
+        string? current = null;
+        int count = 0;
+        bool started = false;
+        foreach (var col in VisibleColumns)
+        {
+            var name = string.IsNullOrEmpty(col.Group) ? null : col.Group;
+            if (started && name == current)
+            {
+                count++;
+            }
+            else
+            {
+                if (started) spans.Add((current, count));
+                current = name;
+                count = 1;
+                started = true;
+            }
+        }
+        if (started) spans.Add((current, count));
+        return spans;
+    }
 
     // ------------------------------------------------------------- Paging
     internal async Task GoToPageAsync(int page)
@@ -573,29 +746,48 @@ public partial class BlazorDataGrid<TItem> : ComponentBase
     internal bool HasSelectColumn => SelectionMode == BlazorDataGridSelectionMode.Multiple;
     internal bool HasDetailColumn => DetailTemplate is not null;
     internal bool HasCommandColumn => Editable;
+    internal bool HasReorderColumn => RowReorderable;
+
+    private const double ReorderColWidth = 36;
+    private const double DetailColWidth = 44;
+    private const double SelectColWidth = 44;
+
+    private double DetailOffset => HasReorderColumn ? ReorderColWidth : 0;
+    private double SelectOffset => DetailOffset + (HasDetailColumn ? DetailColWidth : 0);
+
+    internal string ReorderStickyStyle => "left:0;";
+    internal string DetailStickyStyle => $"left:{DetailOffset.ToString(CultureInfo.InvariantCulture)}px;";
+    internal string SelectStickyStyle => $"left:{SelectOffset.ToString(CultureInfo.InvariantCulture)}px;";
 
     private string ColumnWidthToken(BlazorDataGridColumn<TItem> column)
     {
         if (column.ResizedWidth is { } w) return $"{w.ToString(CultureInfo.InvariantCulture)}px";
-        if (!string.IsNullOrEmpty(column.Width)) return column.Width!;
-        return "minmax(120px, 1fr)";
+        if (!string.IsNullOrEmpty(column.Width))
+            return column.MaxWidth is { } mx
+                ? $"minmax({column.MinWidth}px, min({column.Width}, {mx}px))"
+                : column.Width!;
+        return column.MaxWidth is { } max
+            ? $"minmax({column.MinWidth}px, min(1fr, {max}px))"
+            : $"minmax({Math.Max(120, column.MinWidth)}px, 1fr)";
     }
+
+    /// <summary>Resolves the height (in px) for a given row, honouring <see cref="RowHeightSelector"/>.</summary>
+    internal float ResolveRowHeight(TItem item) => RowHeightSelector?.Invoke(item) ?? RowHeight;
 
     /// <summary>Builds the CSS grid template-columns value for the whole row layout.</summary>
     private string BuildGridTemplate()
     {
         var parts = new List<string>();
-        if (HasDetailColumn) parts.Add("44px");
-        if (HasSelectColumn) parts.Add("44px");
+        if (HasReorderColumn) parts.Add($"{ReorderColWidth.ToString(CultureInfo.InvariantCulture)}px");
+        if (HasDetailColumn) parts.Add($"{DetailColWidth.ToString(CultureInfo.InvariantCulture)}px");
+        if (HasSelectColumn) parts.Add($"{SelectColWidth.ToString(CultureInfo.InvariantCulture)}px");
         foreach (var c in VisibleColumns) parts.Add(ColumnWidthToken(c));
         if (HasCommandColumn) parts.Add("minmax(150px, max-content)");
         return string.Join(" ", parts);
     }
 
     private int TotalColumnSpan =>
-        VisibleColumns.Count + (HasDetailColumn ? 1 : 0) + (HasSelectColumn ? 1 : 0) + (HasCommandColumn ? 1 : 0);
-
-    internal string SelectStickyStyle => HasDetailColumn ? "left:44px;" : "left:0;";
+        VisibleColumns.Count + (HasReorderColumn ? 1 : 0) + (HasDetailColumn ? 1 : 0) + (HasSelectColumn ? 1 : 0) + (HasCommandColumn ? 1 : 0);
 
     private string HeaderCellClass(BlazorDataGridColumn<TItem> column)
     {
@@ -624,7 +816,7 @@ public partial class BlazorDataGrid<TItem> : ComponentBase
         _ => ""
     };
 
-    private double SpecialStickyWidth => (HasDetailColumn ? 44 : 0) + (HasSelectColumn ? 44 : 0);
+    private double SpecialStickyWidth => (HasReorderColumn ? ReorderColWidth : 0) + (HasDetailColumn ? DetailColWidth : 0) + (HasSelectColumn ? SelectColWidth : 0);
 
     private double ColumnPixelWidth(BlazorDataGridColumn<TItem> column)
     {

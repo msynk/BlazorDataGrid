@@ -1,0 +1,29 @@
+@page "/column-groups"
+
+<PageTitle>Column Groups</PageTitle>
+
+<h1>Column header groups</h1>
+<p class="lead">Group related columns under a shared, spanning header — react-data-grid's column grouping.</p>
+
+<p>
+    Set <code>Group="..."</code> on consecutive columns that belong together. Columns sharing the
+    same group name are rendered under a single spanning header cell above the regular header row.
+</p>
+
+<div class="card">
+    <BlazorDataGrid TItem="Product" Items="_products" Height="460px" Sortable="true" Bordered="true">
+        <BlazorDataGridColumn TItem="Product" Field="Id" Title="ID" Width="70px" Align="BlazorDataGridColumnAlign.Right" />
+        <BlazorDataGridColumn TItem="Product" Field="Name" Width="200px" Group="Identity" />
+        <BlazorDataGridColumn TItem="Product" Field="Category" Group="Identity" />
+        <BlazorDataGridColumn TItem="Product" Field="Price" Format="C2" Align="BlazorDataGridColumnAlign.Right" Group="Commercials" />
+        <BlazorDataGridColumn TItem="Product" Field="Stock" Align="BlazorDataGridColumnAlign.Right" Group="Commercials" />
+        <BlazorDataGridColumn TItem="Product" Field="Rating" Format="N1" Align="BlazorDataGridColumnAlign.Right" Group="Quality" />
+        <BlazorDataGridColumn TItem="Product" Field="Supplier" Group="Quality" />
+    </BlazorDataGrid>
+</div>
+
+<p class="hint">Columns without a <code>Group</code> (like <strong>ID</strong>) simply render with an empty spanning cell.</p>
+
+@code {
+    private List<Product> _products = SampleData.Generate(40);
+}

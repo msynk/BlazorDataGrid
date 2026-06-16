@@ -64,33 +64,49 @@ public static class BlazorDataGridDataProcessor
         IReadOnlyList<BlazorDataGridGroupDescriptor> groups,
         IReadOnlyDictionary<string, BlazorDataGridColumn<TItem>> columns)
     {
-        var result = new List<BlazorDataGridGroup<TItem>>();
-        if (groups.Count == 0) return result;
+        if (groups.Count == 0) return new List<BlazorDataGridGroup<TItem>>();
+        return BuildGroups(source, groups, columns, 0, string.Empty);
+    }
 
-        // Only single-level grouping is materialized here (top-level group).
-        var group = groups[0];
-        if (!columns.TryGetValue(group.ColumnId, out var column) || column.Accessor is null)
+    private static List<BlazorDataGridGroup<TItem>> BuildGroups<TItem>(
+        IReadOnlyList<TItem> source,
+        IReadOnlyList<BlazorDataGridGroupDescriptor> groups,
+        IReadOnlyDictionary<string, BlazorDataGridColumn<TItem>> columns,
+        int level,
+        string parentPath)
+    {
+        var result = new List<BlazorDataGridGroup<TItem>>();
+        var descriptor = groups[level];
+        if (!columns.TryGetValue(descriptor.ColumnId, out var column) || column.Accessor is null)
             return result;
 
         var grouped = source
             .GroupBy(item => column.Accessor!.GetValue(item))
-            .Select(g => new BlazorDataGridGroup<TItem>
+            .Select(g =>
             {
-                ColumnId = group.ColumnId,
-                Key = g.Key,
-                KeyText = column.FormatValue(g.Key),
-                Items = g.ToList()
+                var keyText = column.FormatValue(g.Key);
+                var items = g.ToList();
+                var path = $"{parentPath}/{level}:{keyText}";
+                var group = new BlazorDataGridGroup<TItem>
+                {
+                    ColumnId = descriptor.ColumnId,
+                    Key = g.Key,
+                    KeyText = keyText,
+                    Level = level,
+                    Path = path,
+                    Items = items
+                };
+                if (level + 1 < groups.Count)
+                    group.SubGroups.AddRange(BuildGroups(items, groups, columns, level + 1, path));
+                group.Aggregates.AddRange(Aggregate(items, columns.Values));
+                return group;
             });
 
-        grouped = group.Direction == BlazorDataGridSortDirection.Descending
+        grouped = descriptor.Direction == BlazorDataGridSortDirection.Descending
             ? grouped.OrderByDescending(g => g.Key, BlazorDataGridValueComparer.Instance)
             : grouped.OrderBy(g => g.Key, BlazorDataGridValueComparer.Instance);
 
         result = grouped.ToList();
-
-        foreach (var g in result)
-            g.Aggregates.AddRange(Aggregate(g.Items, columns.Values));
-
         return result;
     }
 

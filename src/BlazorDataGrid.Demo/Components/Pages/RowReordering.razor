@@ -1,0 +1,37 @@
+@page "/row-reordering"
+
+<PageTitle>Row Reordering</PageTitle>
+
+<h1>Row reordering</h1>
+<p class="lead">Drag rows to reorder them using native HTML drag-and-drop — zero JavaScript interop.</p>
+
+<p>
+    Set <code>RowReorderable="true"</code> to show a drag handle on each row. Grab the
+    <strong>⠿</strong> handle (or the row) and drop it onto another row. The grid reorders the bound
+    list in place and raises <code>OnRowReorder</code> so you can persist the change.
+</p>
+
+<div class="card">
+    <BlazorDataGrid TItem="Product" Items="_products" Height="460px"
+                    RowReorderable="true" OnRowReorder="OnReorder" Sortable="false">
+        <BlazorDataGridColumn TItem="Product" Field="Id" Title="ID" Width="70px" Align="BlazorDataGridColumnAlign.Right" />
+        <BlazorDataGridColumn TItem="Product" Field="Name" Width="220px" />
+        <BlazorDataGridColumn TItem="Product" Field="Category" />
+        <BlazorDataGridColumn TItem="Product" Field="Price" Format="C2" Align="BlazorDataGridColumnAlign.Right" />
+    </BlazorDataGrid>
+</div>
+
+@if (_lastMove is not null)
+{
+    <p class="hint">Last move: <strong>@_lastMove</strong></p>
+}
+
+@code {
+    private List<Product> _products = SampleData.Generate(12);
+    private string? _lastMove;
+
+    private void OnReorder(BlazorDataGridRowReorderEventArgs<Product> e)
+    {
+        _lastMove = $"{e.DraggedItem.Name} moved from #{e.FromIndex + 1} to #{e.ToIndex + 1}";
+    }
+}

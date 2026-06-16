@@ -63,10 +63,42 @@
             @if (ShowHeader)
             {
                 <div class="bdg-header" role="rowgroup">
+                    @if (HasColumnGroups)
+                    {
+                        <div class="bdg-row bdg-group-header-row" role="row" style="grid-template-columns:var(--bdg-template);">
+                            @if (HasReorderColumn)
+                            {
+                                <div class="bdg-hcell bdg-sticky" style="@ReorderStickyStyle" role="columnheader"></div>
+                            }
+                            @if (HasDetailColumn)
+                            {
+                                <div class="bdg-hcell bdg-sticky" style="@DetailStickyStyle" role="columnheader"></div>
+                            }
+                            @if (HasSelectColumn)
+                            {
+                                <div class="bdg-hcell bdg-sticky" style="@SelectStickyStyle" role="columnheader"></div>
+                            }
+                            @foreach (var span in ColumnGroupSpans())
+                            {
+                                <div class="bdg-hcell bdg-center bdg-group-header@(span.Name is null ? " bdg-group-header-empty" : "")"
+                                     role="columnheader" style="grid-column:span @span.Span;">
+                                    @span.Name
+                                </div>
+                            }
+                            @if (HasCommandColumn)
+                            {
+                                <div class="bdg-hcell" role="columnheader"></div>
+                            }
+                        </div>
+                    }
                     <div class="bdg-row bdg-header-row" role="row" style="grid-template-columns:var(--bdg-template);">
+                        @if (HasReorderColumn)
+                        {
+                            <div class="bdg-hcell bdg-sticky" style="@ReorderStickyStyle" role="columnheader"></div>
+                        }
                         @if (HasDetailColumn)
                         {
-                            <div class="bdg-hcell bdg-sticky" style="left:0;" role="columnheader"></div>
+                            <div class="bdg-hcell bdg-sticky" style="@DetailStickyStyle" role="columnheader"></div>
                         }
                         @if (HasSelectColumn)
                         {
@@ -134,9 +166,13 @@
                     @if (Filterable || VisibleColumns.Any(ColumnFilterable))
                     {
                         <div class="bdg-row bdg-filter-row" role="row" style="grid-template-columns:var(--bdg-template);">
+                            @if (HasReorderColumn)
+                            {
+                                <div class="bdg-hcell bdg-sticky" style="@ReorderStickyStyle"></div>
+                            }
                             @if (HasDetailColumn)
                             {
-                                <div class="bdg-hcell bdg-sticky" style="left:0;"></div>
+                                <div class="bdg-hcell bdg-sticky" style="@DetailStickyStyle"></div>
                             }
                             @if (HasSelectColumn)
                             {
@@ -186,30 +222,7 @@
                 }
                 else if (_viewGroups is not null)
                 {
-                    @foreach (var group in _viewGroups)
-                    {
-                        var groupCol = _columnsById.GetValueOrDefault(group.ColumnId);
-                        <div class="bdg-group-row" role="row">
-                            <div class="bdg-group-cell">
-                                <button type="button" class="bdg-icon-btn" @onclick="() => ToggleGroup(group)">
-                                    @(IsGroupCollapsed(group) ? "▸" : "▾")
-                                </button>
-                                <strong>@(groupCol?.DisplayTitle): @group.KeyText</strong>
-                                <span class="bdg-group-count">(@group.Items.Count)</span>
-                                @foreach (var agg in group.Aggregates)
-                                {
-                                    <span class="bdg-group-agg">@(_columnsById.GetValueOrDefault(agg.ColumnId)?.DisplayTitle): @AggregateLabel(agg)</span>
-                                }
-                            </div>
-                        </div>
-                        @if (!IsGroupCollapsed(group))
-                        {
-                            @foreach (var item in group.Items)
-                            {
-                                <BlazorDataGridRow TItem="TItem" Grid="this" Item="item" @key="item" />
-                            }
-                        }
-                    }
+                    @RenderGroupList(_viewGroups)
                 }
                 else if (UseVirtualization)
                 {
@@ -230,6 +243,10 @@
             {
                 <div class="bdg-footer" role="rowgroup">
                     <div class="bdg-row bdg-footer-row" role="row" style="grid-template-columns:var(--bdg-template);">
+                        @if (HasReorderColumn)
+                        {
+                            <div class="bdg-cell"></div>
+                        }
                         @if (HasDetailColumn)
                         {
                             <div class="bdg-cell"></div>
@@ -280,6 +297,47 @@
 @code {
     private bool UseVirtualization => Virtualize && _viewGroups is null && !IsServerMode;
     private ICollection<TItem> VirtualRows => _view as ICollection<TItem> ?? _view.ToList();
+
+    private RenderFragment RenderGroupList(IReadOnlyList<BlazorDataGridGroup<TItem>> groups) => __builder =>
+    {
+        foreach (var group in groups)
+        {
+            <text>@RenderGroup(group)</text>
+        }
+    };
+
+    private RenderFragment RenderGroup(BlazorDataGridGroup<TItem> group) => __builder =>
+    {
+        var groupCol = _columnsById.GetValueOrDefault(group.ColumnId);
+        var collapsed = IsGroupCollapsed(group);
+        <div class="bdg-group-row" role="row" style="--bdg-group-level:@group.Level;">
+            <div class="bdg-group-cell" style="padding-inline-start:@(8 + group.Level * 20)px;">
+                <button type="button" class="bdg-icon-btn" @onclick="() => ToggleGroup(group)">
+                    @(collapsed ? "▸" : "▾")
+                </button>
+                <strong>@(groupCol?.DisplayTitle): @group.KeyText</strong>
+                <span class="bdg-group-count">(@group.Count)</span>
+                @foreach (var agg in group.Aggregates)
+                {
+                    <span class="bdg-group-agg">@(_columnsById.GetValueOrDefault(agg.ColumnId)?.DisplayTitle): @AggregateLabel(agg)</span>
+                }
+            </div>
+        </div>
+        @if (!collapsed)
+        {
+            if (group.HasSubGroups)
+            {
+                @RenderGroupList(group.SubGroups)
+            }
+            else
+            {
+                foreach (var item in group.Items)
+                {
+                    <BlazorDataGridRow TItem="TItem" Grid="this" Item="item" @key="item" />
+                }
+            }
+        }
+    };
 
     private string ViewportStyle
     {
