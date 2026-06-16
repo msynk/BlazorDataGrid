@@ -12,23 +12,23 @@
 </p>
 
 <div class="card">
-    <DataGrid TItem="Product" Items="_products" Height="430px" MultiSort="true">
-        <DataGridColumn TItem="Product" Field="Id" Title="ID" Width="70px" Align="ColumnAlign.Right" />
-        <DataGridColumn TItem="Product" Field="Name" Width="220px" />
-        <DataGridColumn TItem="Product" Field="Category" />
-        <DataGridColumn TItem="Product" Field="Price" Format="C2" Align="ColumnAlign.Right" />
-        <DataGridColumn TItem="Product" Field="Stock" Align="ColumnAlign.Right" />
-        <DataGridColumn TItem="Product" Field="Rating" Format="N1" Align="ColumnAlign.Right" />
-    </DataGrid>
+    <BlazorDataGrid TItem="Product" Items="_products" Height="430px" MultiSort="true">
+        <BlazorDataGridColumn TItem="Product" Field="Id" Title="ID" Width="70px" Align="BlazorDataGridColumnAlign.Right" />
+        <BlazorDataGridColumn TItem="Product" Field="Name" Width="220px" />
+        <BlazorDataGridColumn TItem="Product" Field="Category" />
+        <BlazorDataGridColumn TItem="Product" Field="Price" Format="C2" Align="BlazorDataGridColumnAlign.Right" />
+        <BlazorDataGridColumn TItem="Product" Field="Stock" Align="BlazorDataGridColumnAlign.Right" />
+        <BlazorDataGridColumn TItem="Product" Field="Rating" Format="N1" Align="BlazorDataGridColumnAlign.Right" />
+    </BlazorDataGrid>
 </div>
 
 <h2>Markup</h2>
 <div class="card">
-<pre><code>&lt;DataGrid TItem="Product" Items="products" MultiSort="true"&gt;
-    &lt;DataGridColumn TItem="Product" Field="Id" Title="ID" Align="ColumnAlign.Right" /&gt;
-    &lt;DataGridColumn TItem="Product" Field="Name" /&gt;
-    &lt;DataGridColumn TItem="Product" Field="Price" Format="C2" /&gt;
-&lt;/DataGrid&gt;</code></pre>
+<pre><code>&lt;BlazorDataGrid TItem="Product" Items="products" MultiSort="true"&gt;
+    &lt;BlazorDataGridColumn TItem="Product" Field="Id" Title="ID" Align="BlazorDataGridColumnAlign.Right" /&gt;
+    &lt;BlazorDataGridColumn TItem="Product" Field="Name" /&gt;
+    &lt;BlazorDataGridColumn TItem="Product" Field="Price" Format="C2" /&gt;
+&lt;/BlazorDataGrid&gt;</code></pre>
 </div>
 
 @code {

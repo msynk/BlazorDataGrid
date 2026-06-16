@@ -18,16 +18,16 @@
 </div>
 
 <div class="card">
-    <DataGrid TItem="Product" Items="_products" Height="520px"
+    <BlazorDataGrid TItem="Product" Items="_products" Height="520px"
               Virtualize="true" RowHeight="36" Sortable="true" Filterable="true">
-        <DataGridColumn TItem="Product" Field="Id" Title="ID" Width="90px" Align="ColumnAlign.Right" Filterable="false" />
-        <DataGridColumn TItem="Product" Field="Name" Width="240px" />
-        <DataGridColumn TItem="Product" Field="Category" />
-        <DataGridColumn TItem="Product" Field="Supplier" />
-        <DataGridColumn TItem="Product" Field="Price" Format="C2" Align="ColumnAlign.Right" />
-        <DataGridColumn TItem="Product" Field="Stock" Align="ColumnAlign.Right" />
-        <DataGridColumn TItem="Product" Field="Rating" Format="N1" Align="ColumnAlign.Right" />
-    </DataGrid>
+        <BlazorDataGridColumn TItem="Product" Field="Id" Title="ID" Width="90px" Align="BlazorDataGridColumnAlign.Right" Filterable="false" />
+        <BlazorDataGridColumn TItem="Product" Field="Name" Width="240px" />
+        <BlazorDataGridColumn TItem="Product" Field="Category" />
+        <BlazorDataGridColumn TItem="Product" Field="Supplier" />
+        <BlazorDataGridColumn TItem="Product" Field="Price" Format="C2" Align="BlazorDataGridColumnAlign.Right" />
+        <BlazorDataGridColumn TItem="Product" Field="Stock" Align="BlazorDataGridColumnAlign.Right" />
+        <BlazorDataGridColumn TItem="Product" Field="Rating" Format="N1" Align="BlazorDataGridColumnAlign.Right" />
+    </BlazorDataGrid>
 </div>
 
 @code {

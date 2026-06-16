@@ -1,20 +1,20 @@
-ï»¿@page "/"
+@page "/"
 
-<PageTitle>BlazorDataGrid Â· Overview</PageTitle>
+<PageTitle>BlazorDataGrid · Overview</PageTitle>
 
 <h1>BlazorDataGrid</h1>
-<p class="lead">A feature-rich, native Blazor data grid for .NET 10 â€” built with minimal JavaScript.</p>
+<p class="lead">A feature-rich, native Blazor data grid for .NET 10 — built with minimal JavaScript.</p>
 
 <p>
     This component library implements the capabilities you expect from a top-tier data grid
     (inspired by react-data-grid, MUI X, AG Grid and Syncfusion), using idiomatic Blazor:
     CSS Grid layout, the built-in <code>Virtualize</code> component, CSS <code>position: sticky</code>
     for frozen columns/headers, and native HTML drag-and-drop. Column resizing uses a pure-Blazor
-    pointer overlay â€” no custom JS at all.
+    pointer overlay — no custom JS at all.
 </p>
 
 <div class="feature-grid">
-    <div class="feature"><h3>Sorting</h3><p>Single &amp; multi-column (Ctrl/âŒ˜+click) with priority badges.</p></div>
+    <div class="feature"><h3>Sorting</h3><p>Single &amp; multi-column (Ctrl/?+click) with priority badges.</p></div>
     <div class="feature"><h3>Filtering</h3><p>Per-column quick filters plus a rich operator API.</p></div>
     <div class="feature"><h3>Paging</h3><p>Configurable page sizes, top/bottom pager.</p></div>
     <div class="feature"><h3>Virtualization</h3><p>Render 100k+ rows smoothly via <code>Virtualize</code>.</p></div>
@@ -22,7 +22,7 @@
     <div class="feature"><h3>Inline editing</h3><p>Typed editors, add / save / cancel / delete.</p></div>
     <div class="feature"><h3>Grouping</h3><p>Collapsible groups with per-group aggregates.</p></div>
     <div class="feature"><h3>Aggregates</h3><p>Sum, Avg, Count, Min, Max footer rows.</p></div>
-    <div class="feature"><h3>Resize</h3><p>Drag column edges â€” zero JavaScript.</p></div>
+    <div class="feature"><h3>Resize</h3><p>Drag column edges — zero JavaScript.</p></div>
     <div class="feature"><h3>Reorder</h3><p>Native drag-and-drop column ordering.</p></div>
     <div class="feature"><h3>Frozen columns</h3><p>Pin columns &amp; headers while scrolling.</p></div>
     <div class="feature"><h3>Templates</h3><p>Cell, header, editor, footer &amp; detail templates.</p></div>
@@ -36,29 +36,29 @@
 <p class="lead">Most features enabled at once. Try sorting, filtering, paging, selecting and exporting.</p>
 
 <div class="card">
-    <DataGrid TItem="Product" Items="_products" Height="460px"
+    <BlazorDataGrid TItem="Product" Items="_products" Height="460px"
               Pageable="true" PageSize="8"
               Filterable="true" Sortable="true" MultiSort="true"
-              SelectionMode="GridSelectionMode.Multiple"
+              SelectionMode="BlazorDataGridSelectionMode.Multiple"
               ShowFooter="true" ShowToolbar="true" ShowColumnChooser="true" ShowCsvExport="true"
               Resizable="true" Reorderable="true"
               @bind-SelectedItems="_selected">
-        <DataGridColumn TItem="Product" Field="Id" Title="ID" Width="70px" Align="ColumnAlign.Right" Frozen="true" />
-        <DataGridColumn TItem="Product" Field="Name" Width="200px" />
-        <DataGridColumn TItem="Product" Field="Category" />
-        <DataGridColumn TItem="Product" Field="Supplier" />
-        <DataGridColumn TItem="Product" Field="Price" Format="C2" Align="ColumnAlign.Right" Aggregate="AggregateType.Average" />
-        <DataGridColumn TItem="Product" Field="Stock" Align="ColumnAlign.Right" Aggregate="AggregateType.Sum" />
-        <DataGridColumn TItem="Product" Field="Rating" Format="N1" Align="ColumnAlign.Right" />
-        <DataGridColumn TItem="Product" Field="ReleaseDate" Title="Released" Format="yyyy-MM-dd" />
-        <DataGridColumn TItem="Product" Field="Discontinued" Title="Active">
+        <BlazorDataGridColumn TItem="Product" Field="Id" Title="ID" Width="70px" Align="BlazorDataGridColumnAlign.Right" Frozen="true" />
+        <BlazorDataGridColumn TItem="Product" Field="Name" Width="200px" />
+        <BlazorDataGridColumn TItem="Product" Field="Category" />
+        <BlazorDataGridColumn TItem="Product" Field="Supplier" />
+        <BlazorDataGridColumn TItem="Product" Field="Price" Format="C2" Align="BlazorDataGridColumnAlign.Right" Aggregate="BlazorDataGridAggregateType.Average" />
+        <BlazorDataGridColumn TItem="Product" Field="Stock" Align="BlazorDataGridColumnAlign.Right" Aggregate="BlazorDataGridAggregateType.Sum" />
+        <BlazorDataGridColumn TItem="Product" Field="Rating" Format="N1" Align="BlazorDataGridColumnAlign.Right" />
+        <BlazorDataGridColumn TItem="Product" Field="ReleaseDate" Title="Released" Format="yyyy-MM-dd" />
+        <BlazorDataGridColumn TItem="Product" Field="Discontinued" Title="Active">
             <Template Context="p">
                 <span class="badge @(p.Discontinued ? "badge-off" : "badge-on")">
                     @(p.Discontinued ? "No" : "Yes")
                 </span>
             </Template>
-        </DataGridColumn>
-    </DataGrid>
+        </BlazorDataGridColumn>
+    </BlazorDataGrid>
 </div>
 <p class="hint">Selected: @_selected.Count item(s).</p>
 

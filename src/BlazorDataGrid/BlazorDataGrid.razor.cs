@@ -10,13 +10,13 @@ namespace BlazorDataGrid;
 /// columns, grouping, aggregates and theming.
 /// </summary>
 /// <typeparam name="TItem">The row item type.</typeparam>
-public partial class DataGrid<TItem> : ComponentBase
+public partial class BlazorDataGrid<TItem> : ComponentBase
 {
     // ---------------------------------------------------------------- Data
     [Parameter] public IEnumerable<TItem>? Items { get; set; }
 
     /// <summary>Server-side data callback. When set, the grid delegates sort/filter/page to the caller.</summary>
-    [Parameter] public Func<DataGridReadRequest, Task<DataGridReadResult<TItem>>>? OnRead { get; set; }
+    [Parameter] public Func<BlazorDataGridReadRequest, Task<BlazorDataGridReadResult<TItem>>>? OnRead { get; set; }
 
     /// <summary>Column definitions and other declarative children.</summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
@@ -36,7 +36,7 @@ public partial class DataGrid<TItem> : ComponentBase
     [Parameter] public bool Bordered { get; set; } = true;
     [Parameter] public bool ShowHeader { get; set; } = true;
     [Parameter] public bool ShowFooter { get; set; }
-    [Parameter] public GridDirection Direction { get; set; } = GridDirection.Ltr;
+    [Parameter] public BlazorDataGridDirection Direction { get; set; } = BlazorDataGridDirection.Ltr;
 
     // -------------------------------------------------------- Feature toggles
     [Parameter] public bool Sortable { get; set; } = true;
@@ -50,7 +50,7 @@ public partial class DataGrid<TItem> : ComponentBase
     [Parameter] public bool ShowCsvExport { get; set; }
 
     // ------------------------------------------------------------- Selection
-    [Parameter] public GridSelectionMode SelectionMode { get; set; } = GridSelectionMode.None;
+    [Parameter] public BlazorDataGridSelectionMode SelectionMode { get; set; } = BlazorDataGridSelectionMode.None;
     [Parameter] public IReadOnlyList<TItem>? SelectedItems { get; set; }
     [Parameter] public EventCallback<IReadOnlyList<TItem>> SelectedItemsChanged { get; set; }
     [Parameter] public EventCallback<TItem> OnRowClick { get; set; }
@@ -59,7 +59,7 @@ public partial class DataGrid<TItem> : ComponentBase
     [Parameter] public bool Pageable { get; set; }
     [Parameter] public int PageSize { get; set; } = 20;
     [Parameter] public int[] PageSizeOptions { get; set; } = { 10, 20, 50, 100 };
-    [Parameter] public PagerPosition PagerPosition { get; set; } = PagerPosition.Bottom;
+    [Parameter] public BlazorDataGridPagerPosition PagerPosition { get; set; } = BlazorDataGridPagerPosition.Bottom;
 
     // --------------------------------------------------------- Virtualization
     [Parameter] public bool Virtualize { get; set; }
@@ -79,19 +79,19 @@ public partial class DataGrid<TItem> : ComponentBase
     [Parameter] public RenderFragment<TItem>? DetailTemplate { get; set; }
 
     // ---------------------------------------------------------------- State
-    private readonly List<DataGridColumn<TItem>> _columns = new();
-    private readonly Dictionary<string, DataGridColumn<TItem>> _columnsById = new();
-    private readonly List<SortDescriptor> _sorts = new();
-    private readonly List<FilterDescriptor> _filters = new();
-    private readonly List<GroupDescriptor> _groups = new();
+    private readonly List<BlazorDataGridColumn<TItem>> _columns = new();
+    private readonly Dictionary<string, BlazorDataGridColumn<TItem>> _columnsById = new();
+    private readonly List<BlazorDataGridSortDescriptor> _sorts = new();
+    private readonly List<BlazorDataGridFilterDescriptor> _filters = new();
+    private readonly List<BlazorDataGridGroupDescriptor> _groups = new();
     private readonly HashSet<TItem> _selected = new();
     private readonly HashSet<object> _expandedDetails = new();
     private readonly HashSet<object> _collapsedGroups = new();
 
     private IReadOnlyList<TItem> _view = Array.Empty<TItem>();      // filtered + sorted (full)
     private IReadOnlyList<TItem> _pageItems = Array.Empty<TItem>(); // current page slice
-    private List<GridGroup<TItem>>? _viewGroups;
-    private List<AggregateResult> _footerAggregates = new();
+    private List<BlazorDataGridGroup<TItem>>? _viewGroups;
+    private List<BlazorDataGridAggregateResult> _footerAggregates = new();
     private int _totalCount;
 
     private int _currentPage = 1;
@@ -111,27 +111,27 @@ public partial class DataGrid<TItem> : ComponentBase
     private Dictionary<string, object?>? _editSnapshot;
 
     // resizing
-    private DataGridColumn<TItem>? _resizingColumn;
+    private BlazorDataGridColumn<TItem>? _resizingColumn;
     private double _resizeStartX;
     private double _resizeStartWidth;
 
     // reordering
-    private DataGridColumn<TItem>? _dragColumn;
+    private BlazorDataGridColumn<TItem>? _dragColumn;
 
-    internal IReadOnlyList<DataGridColumn<TItem>> AllColumns => _columns;
-    internal IReadOnlyList<DataGridColumn<TItem>> VisibleColumns => _columns.Where(c => c.Visible).ToList();
-    internal IReadOnlyList<SortDescriptor> Sorts => _sorts;
+    internal IReadOnlyList<BlazorDataGridColumn<TItem>> AllColumns => _columns;
+    internal IReadOnlyList<BlazorDataGridColumn<TItem>> VisibleColumns => _columns.Where(c => c.Visible).ToList();
+    internal IReadOnlyList<BlazorDataGridSortDescriptor> Sorts => _sorts;
     internal bool IsServerMode => OnRead is not null;
     internal bool IsEditing(TItem item) => _editItem is not null && KeyEquals(_editItem, item);
     internal bool IsRowSelected(TItem item) => _selected.Contains(item);
     internal int TotalCount => IsServerMode ? _totalCount : _view.Count;
     internal int TotalPages => _effectivePageSize <= 0 ? 1 : Math.Max(1, (int)Math.Ceiling(TotalCount / (double)_effectivePageSize));
     internal int CurrentPage => _currentPage;
-    internal IReadOnlyList<AggregateResult> FooterAggregates => _footerAggregates;
+    internal IReadOnlyList<BlazorDataGridAggregateResult> FooterAggregates => _footerAggregates;
     internal TItem? PendingNewItem => _pendingNew;
 
     // ------------------------------------------------- Column registration
-    internal void AddColumn(DataGridColumn<TItem> column)
+    internal void AddColumn(BlazorDataGridColumn<TItem> column)
     {
         if (_columns.Contains(column)) return;
         _columns.Add(column);
@@ -139,7 +139,7 @@ public partial class DataGrid<TItem> : ComponentBase
         InvokeAsync(StateHasChanged);
     }
 
-    internal void RemoveColumn(DataGridColumn<TItem> column)
+    internal void RemoveColumn(BlazorDataGridColumn<TItem> column)
     {
         if (_columns.Remove(column))
         {
@@ -189,15 +189,15 @@ public partial class DataGrid<TItem> : ComponentBase
     private void ProcessClientData()
     {
         var source = Items ?? Enumerable.Empty<TItem>();
-        var filtered = GridDataProcessor.Filter(source, _filters, _columnsById);
-        _view = GridDataProcessor.Sort(filtered, _sorts, _columnsById);
-        _footerAggregates = GridDataProcessor.Aggregate(_view, _columns);
+        var filtered = BlazorDataGridDataProcessor.Filter(source, _filters, _columnsById);
+        _view = BlazorDataGridDataProcessor.Sort(filtered, _sorts, _columnsById);
+        _footerAggregates = BlazorDataGridDataProcessor.Aggregate(_view, _columns);
 
         ClampPage();
 
         if (_groups.Count > 0)
         {
-            _viewGroups = GridDataProcessor.Group(_view, _groups, _columnsById);
+            _viewGroups = BlazorDataGridDataProcessor.Group(_view, _groups, _columnsById);
             _pageItems = _view; // grouping ignores paging in this implementation
         }
         else
@@ -211,18 +211,18 @@ public partial class DataGrid<TItem> : ComponentBase
 
     private async Task LoadServerDataAsync()
     {
-        var request = new DataGridReadRequest
+        var request = new BlazorDataGridReadRequest
         {
             Skip = Pageable ? (_currentPage - 1) * _effectivePageSize : 0,
             Take = Pageable ? _effectivePageSize : null,
-            Sorts = _sorts.Where(s => s.Direction != SortDirection.None).OrderBy(s => s.Priority).ToList(),
+            Sorts = _sorts.Where(s => s.Direction != BlazorDataGridSortDirection.None).OrderBy(s => s.Priority).ToList(),
             Filters = _filters.ToList()
         };
         var result = await OnRead!(request);
         _pageItems = result.Items;
         _view = result.Items;
         _totalCount = result.TotalCount;
-        _footerAggregates = GridDataProcessor.Aggregate(_pageItems, _columns);
+        _footerAggregates = BlazorDataGridDataProcessor.Aggregate(_pageItems, _columns);
         _viewGroups = null;
         ClampPage();
     }
@@ -235,13 +235,13 @@ public partial class DataGrid<TItem> : ComponentBase
     }
 
     // ------------------------------------------------------------- Sorting
-    internal bool ColumnSortable(DataGridColumn<TItem> column)
+    internal bool ColumnSortable(BlazorDataGridColumn<TItem> column)
         => column.HasField && (column.Sortable ?? Sortable);
 
-    internal SortDescriptor? GetSort(DataGridColumn<TItem> column)
+    internal BlazorDataGridSortDescriptor? GetSort(BlazorDataGridColumn<TItem> column)
         => _sorts.FirstOrDefault(s => s.ColumnId == column.Id);
 
-    internal async Task ToggleSortAsync(DataGridColumn<TItem> column, bool additive)
+    internal async Task ToggleSortAsync(BlazorDataGridColumn<TItem> column, bool additive)
     {
         if (!ColumnSortable(column)) return;
         var existing = GetSort(column);
@@ -259,11 +259,11 @@ public partial class DataGrid<TItem> : ComponentBase
 
         if (existing is null)
         {
-            _sorts.Add(new SortDescriptor { ColumnId = column.Id, Direction = SortDirection.Ascending, Priority = _sorts.Count + 1 });
+            _sorts.Add(new BlazorDataGridSortDescriptor { ColumnId = column.Id, Direction = BlazorDataGridSortDirection.Ascending, Priority = _sorts.Count + 1 });
         }
-        else if (existing.Direction == SortDirection.Ascending)
+        else if (existing.Direction == BlazorDataGridSortDirection.Ascending)
         {
-            existing.Direction = SortDirection.Descending;
+            existing.Direction = BlazorDataGridSortDirection.Descending;
         }
         else
         {
@@ -279,23 +279,23 @@ public partial class DataGrid<TItem> : ComponentBase
     }
 
     // ----------------------------------------------------------- Filtering
-    internal bool ColumnFilterable(DataGridColumn<TItem> column)
+    internal bool ColumnFilterable(BlazorDataGridColumn<TItem> column)
         => column.HasField && (column.Filterable ?? Filterable);
 
-    internal FilterDescriptor? GetFilter(DataGridColumn<TItem> column)
+    internal BlazorDataGridFilterDescriptor? GetFilter(BlazorDataGridColumn<TItem> column)
         => _filters.FirstOrDefault(f => f.ColumnId == column.Id);
 
-    internal async Task SetFilterAsync(DataGridColumn<TItem> column, FilterOperator op, object? value)
+    internal async Task SetFilterAsync(BlazorDataGridColumn<TItem> column, BlazorDataGridFilterOperator op, object? value)
     {
         var existing = GetFilter(column);
         var isEmpty = value is null || (value is string s && s.Length == 0);
-        if (isEmpty && op is not (FilterOperator.IsEmpty or FilterOperator.IsNotEmpty))
+        if (isEmpty && op is not (BlazorDataGridFilterOperator.IsEmpty or BlazorDataGridFilterOperator.IsNotEmpty))
         {
             if (existing is not null) _filters.Remove(existing);
         }
         else if (existing is null)
         {
-            _filters.Add(new FilterDescriptor { ColumnId = column.Id, Operator = op, Value = value });
+            _filters.Add(new BlazorDataGridFilterDescriptor { ColumnId = column.Id, Operator = op, Value = value });
         }
         else
         {
@@ -313,18 +313,18 @@ public partial class DataGrid<TItem> : ComponentBase
     }
 
     // ----------------------------------------------------------- Grouping
-    internal bool ColumnGroupable(DataGridColumn<TItem> column)
+    internal bool ColumnGroupable(BlazorDataGridColumn<TItem> column)
         => column.HasField && (column.Groupable ?? Groupable);
 
-    internal bool IsGrouped(DataGridColumn<TItem> column) => _groups.Any(g => g.ColumnId == column.Id);
+    internal bool IsGrouped(BlazorDataGridColumn<TItem> column) => _groups.Any(g => g.ColumnId == column.Id);
 
-    internal async Task ToggleGroupAsync(DataGridColumn<TItem> column)
+    internal async Task ToggleGroupAsync(BlazorDataGridColumn<TItem> column)
     {
         var existing = _groups.FirstOrDefault(g => g.ColumnId == column.Id);
         if (existing is null)
         {
             _groups.Clear(); // single-level grouping
-            _groups.Add(new GroupDescriptor { ColumnId = column.Id });
+            _groups.Add(new BlazorDataGridGroupDescriptor { ColumnId = column.Id });
         }
         else
         {
@@ -333,9 +333,9 @@ public partial class DataGrid<TItem> : ComponentBase
         await RefreshAsync();
     }
 
-    internal bool IsGroupCollapsed(GridGroup<TItem> group) => _collapsedGroups.Contains(group.Key ?? NullKey);
+    internal bool IsGroupCollapsed(BlazorDataGridGroup<TItem> group) => _collapsedGroups.Contains(group.Key ?? NullKey);
     private static readonly object NullKey = new();
-    internal void ToggleGroup(GridGroup<TItem> group)
+    internal void ToggleGroup(BlazorDataGridGroup<TItem> group)
     {
         var key = group.Key ?? NullKey;
         if (!_collapsedGroups.Add(key)) _collapsedGroups.Remove(key);
@@ -343,13 +343,13 @@ public partial class DataGrid<TItem> : ComponentBase
     }
 
     // ---------------------------------------------------------- Selection
-    internal bool SelectionEnabled => SelectionMode != GridSelectionMode.None;
+    internal bool SelectionEnabled => SelectionMode != BlazorDataGridSelectionMode.None;
 
     internal async Task ToggleRowSelectionAsync(TItem item, bool? value = null)
     {
-        if (SelectionMode == GridSelectionMode.None) return;
+        if (SelectionMode == BlazorDataGridSelectionMode.None) return;
         var selected = value ?? !_selected.Contains(item);
-        if (SelectionMode == GridSelectionMode.Single)
+        if (SelectionMode == BlazorDataGridSelectionMode.Single)
         {
             _selected.Clear();
             if (selected) _selected.Add(item);
@@ -383,7 +383,7 @@ public partial class DataGrid<TItem> : ComponentBase
     internal async Task HandleRowClickAsync(TItem item)
     {
         if (OnRowClick.HasDelegate) await OnRowClick.InvokeAsync(item);
-        if (SelectionMode == GridSelectionMode.Single && _editItem is null)
+        if (SelectionMode == BlazorDataGridSelectionMode.Single && _editItem is null)
             await ToggleRowSelectionAsync(item, true);
     }
 
@@ -397,7 +397,7 @@ public partial class DataGrid<TItem> : ComponentBase
     }
 
     // ---------------------------------------------------------- Editing
-    internal bool ColumnEditable(DataGridColumn<TItem> column)
+    internal bool ColumnEditable(BlazorDataGridColumn<TItem> column)
         => column.HasField && column.Accessor?.CanWrite == true && (column.Editable ?? Editable);
 
     internal void BeginEdit(TItem item)
@@ -464,14 +464,14 @@ public partial class DataGrid<TItem> : ComponentBase
         await RefreshAsync();
     }
 
-    internal void SetEditValue(DataGridColumn<TItem> column, object? value)
+    internal void SetEditValue(BlazorDataGridColumn<TItem> column, object? value)
     {
         if (_editItem is null) return;
         column.Accessor?.SetValue(_editItem, value);
     }
 
     // ---------------------------------------------------------- Resizing
-    internal void StartResize(DataGridColumn<TItem> column, double clientX)
+    internal void StartResize(BlazorDataGridColumn<TItem> column, double clientX)
     {
         _resizingColumn = column;
         _resizeStartX = clientX;
@@ -483,7 +483,7 @@ public partial class DataGrid<TItem> : ComponentBase
     {
         if (_resizingColumn is null) return;
         var delta = clientX - _resizeStartX;
-        if (Direction == GridDirection.Rtl) delta = -delta;
+        if (Direction == BlazorDataGridDirection.Rtl) delta = -delta;
         var newWidth = Math.Max(_resizingColumn.MinWidth, _resizeStartWidth + delta);
         _resizingColumn.ResizedWidth = newWidth;
         StateHasChanged();
@@ -497,7 +497,7 @@ public partial class DataGrid<TItem> : ComponentBase
 
     internal bool IsResizing => _resizingColumn is not null;
 
-    private static double ParseInitialWidth(DataGridColumn<TItem> column)
+    private static double ParseInitialWidth(BlazorDataGridColumn<TItem> column)
     {
         if (!string.IsNullOrEmpty(column.Width) && column.Width.EndsWith("px")
             && double.TryParse(column.Width[..^2], NumberStyles.Any, CultureInfo.InvariantCulture, out var px))
@@ -506,9 +506,9 @@ public partial class DataGrid<TItem> : ComponentBase
     }
 
     // -------------------------------------------------------- Reordering
-    internal void StartColumnDrag(DataGridColumn<TItem> column) => _dragColumn = column;
+    internal void StartColumnDrag(BlazorDataGridColumn<TItem> column) => _dragColumn = column;
 
-    internal void DropColumn(DataGridColumn<TItem> target)
+    internal void DropColumn(BlazorDataGridColumn<TItem> target)
     {
         if (_dragColumn is null || _dragColumn == target) { _dragColumn = null; return; }
         var from = _columns.IndexOf(_dragColumn);
@@ -520,8 +520,8 @@ public partial class DataGrid<TItem> : ComponentBase
         StateHasChanged();
     }
 
-    internal bool ColumnResizable(DataGridColumn<TItem> column) => column.Resizable ?? Resizable;
-    internal bool ColumnReorderable(DataGridColumn<TItem> column) => column.Reorderable ?? Reorderable;
+    internal bool ColumnResizable(BlazorDataGridColumn<TItem> column) => column.Resizable ?? Resizable;
+    internal bool ColumnReorderable(BlazorDataGridColumn<TItem> column) => column.Reorderable ?? Reorderable;
 
     // ------------------------------------------------------------- Paging
     internal async Task GoToPageAsync(int page)
@@ -540,7 +540,7 @@ public partial class DataGrid<TItem> : ComponentBase
 
     // ------------------------------------------------------- Column chooser
     internal void ToggleColumnChooser() { _showColumnChooserPanel = !_showColumnChooserPanel; StateHasChanged(); }
-    internal async Task SetColumnVisibilityAsync(DataGridColumn<TItem> column, bool visible)
+    internal async Task SetColumnVisibilityAsync(BlazorDataGridColumn<TItem> column, bool visible)
     {
         column.Visible = visible;
         await RefreshAsync();
@@ -570,11 +570,11 @@ public partial class DataGrid<TItem> : ComponentBase
     }
 
     // ----------------------------------------------------- Layout helpers
-    internal bool HasSelectColumn => SelectionMode == GridSelectionMode.Multiple;
+    internal bool HasSelectColumn => SelectionMode == BlazorDataGridSelectionMode.Multiple;
     internal bool HasDetailColumn => DetailTemplate is not null;
     internal bool HasCommandColumn => Editable;
 
-    private string ColumnWidthToken(DataGridColumn<TItem> column)
+    private string ColumnWidthToken(BlazorDataGridColumn<TItem> column)
     {
         if (column.ResizedWidth is { } w) return $"{w.ToString(CultureInfo.InvariantCulture)}px";
         if (!string.IsNullOrEmpty(column.Width)) return column.Width!;
@@ -597,7 +597,7 @@ public partial class DataGrid<TItem> : ComponentBase
 
     internal string SelectStickyStyle => HasDetailColumn ? "left:44px;" : "left:0;";
 
-    private string HeaderCellClass(DataGridColumn<TItem> column)
+    private string HeaderCellClass(BlazorDataGridColumn<TItem> column)
     {
         var c = "bdg-hcell " + AlignClass(column.Align);
         if (column.Frozen) c += " bdg-sticky";
@@ -612,28 +612,28 @@ public partial class DataGrid<TItem> : ComponentBase
         if (Bordered) c += " bdg-bordered";
         if (Striped) c += " bdg-striped";
         if (Hoverable) c += " bdg-hoverable";
-        if (Direction == GridDirection.Rtl) c += " bdg-rtl";
+        if (Direction == BlazorDataGridDirection.Rtl) c += " bdg-rtl";
         if (!string.IsNullOrEmpty(Class)) c += " " + Class;
         return c;
     }
 
-    internal static string AlignClass(ColumnAlign a) => a switch
+    internal static string AlignClass(BlazorDataGridColumnAlign a) => a switch
     {
-        ColumnAlign.Center => "bdg-center",
-        ColumnAlign.Right => "bdg-right",
+        BlazorDataGridColumnAlign.Center => "bdg-center",
+        BlazorDataGridColumnAlign.Right => "bdg-right",
         _ => ""
     };
 
     private double SpecialStickyWidth => (HasDetailColumn ? 44 : 0) + (HasSelectColumn ? 44 : 0);
 
-    private double ColumnPixelWidth(DataGridColumn<TItem> column)
+    private double ColumnPixelWidth(BlazorDataGridColumn<TItem> column)
     {
         if (column.ResizedWidth is { } w) return w;
         return ParseInitialWidth(column);
     }
 
     /// <summary>Sticky left offset (in px) for a frozen data column.</summary>
-    internal double FrozenOffset(DataGridColumn<TItem> column)
+    internal double FrozenOffset(BlazorDataGridColumn<TItem> column)
     {
         double offset = SpecialStickyWidth;
         foreach (var c in VisibleColumns)
@@ -644,20 +644,20 @@ public partial class DataGrid<TItem> : ComponentBase
         return offset;
     }
 
-    internal string FrozenStyle(DataGridColumn<TItem> column)
+    internal string FrozenStyle(BlazorDataGridColumn<TItem> column)
     {
         if (!column.Frozen) return string.Empty;
-        var edge = Direction == GridDirection.Rtl ? "right" : "left";
+        var edge = Direction == BlazorDataGridDirection.Rtl ? "right" : "left";
         return $"{edge}:{FrozenOffset(column).ToString(CultureInfo.InvariantCulture)}px;";
     }
 
-    private string AggregateLabel(AggregateResult agg) => agg.Type switch
+    private string AggregateLabel(BlazorDataGridAggregateResult agg) => agg.Type switch
     {
-        AggregateType.Sum => $"Σ {agg.FormattedValue}",
-        AggregateType.Average => $"avg {agg.FormattedValue}",
-        AggregateType.Count => $"count {agg.FormattedValue}",
-        AggregateType.Min => $"min {agg.FormattedValue}",
-        AggregateType.Max => $"max {agg.FormattedValue}",
+        BlazorDataGridAggregateType.Sum => $"Σ {agg.FormattedValue}",
+        BlazorDataGridAggregateType.Average => $"avg {agg.FormattedValue}",
+        BlazorDataGridAggregateType.Count => $"count {agg.FormattedValue}",
+        BlazorDataGridAggregateType.Min => $"min {agg.FormattedValue}",
+        BlazorDataGridAggregateType.Max => $"max {agg.FormattedValue}",
         _ => agg.FormattedValue
     };
 }

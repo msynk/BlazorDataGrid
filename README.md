@@ -21,7 +21,7 @@ The component takes its feature inspiration from the leading grids on the web
 |------|--------------|
 | Data | Strongly-typed generic binding, nested property paths, server-side `OnRead` |
 | Sorting | Single &amp; multi-column (Ctrl/⌘+click) with priority badges |
-| Filtering | Per-column quick filters + rich `FilterOperator` API |
+| Filtering | Per-column quick filters + rich `BlazorDataGridFilterOperator` API |
 | Paging | Configurable page sizes, top/bottom pager |
 | Virtualization | Smooth rendering of 100k+ rows |
 | Selection | Single / multiple, select-all header checkbox, two-way binding |
@@ -37,14 +37,14 @@ The component takes its feature inspiration from the leading grids on the web
 ## Project layout
 
 ```
-src/BlazorDataGrid/            Razor Class Library (the component)
-  DataGrid.razor(.cs)          Main generic grid component
-  DataGridColumn.cs            Declarative column definition
-  DataGridRow.razor            Row renderer
-  CellEditor.razor             Default type-aware editor
-  Models/                      Enums, descriptors, request/result types
-  Infrastructure/              Compiled property accessors + data pipeline
-  wwwroot/blazordatagrid.css   Styles (theming via CSS variables)
+src/BlazorDataGrid/                  Razor Class Library (the component)
+  BlazorDataGrid.razor(.cs)          Main generic grid component
+  BlazorDataGridColumn.cs            Declarative column definition
+  BlazorDataGridRow.razor            Row renderer
+  BlazorDataGridCellEditor.razor     Default type-aware editor
+  Models/                            Enums, descriptors, request/result types
+  Infrastructure/                    Compiled property accessors + data pipeline
+  wwwroot/blazordatagrid.css         Styles (theming via CSS variables)
 
 src/BlazorDataGrid.Demo/       Blazor Web App (.NET 10) showcasing every feature
 src/BlazorDataGrid.slnx        Solution file
@@ -54,18 +54,17 @@ src/BlazorDataGrid.slnx        Solution file
 
 ```razor
 @using BlazorDataGrid
-@using BlazorDataGrid.Models
 
-<DataGrid TItem="Product" Items="products"
-          Pageable="true" PageSize="10"
-          Filterable="true" Sortable="true"
-          SelectionMode="GridSelectionMode.Multiple"
-          ShowFooter="true">
-    <DataGridColumn TItem="Product" Field="Id" Title="ID" Align="ColumnAlign.Right" Frozen="true" />
-    <DataGridColumn TItem="Product" Field="Name" />
-    <DataGridColumn TItem="Product" Field="Price" Format="C2" Align="ColumnAlign.Right"
-                    Aggregate="AggregateType.Sum" />
-</DataGrid>
+<BlazorDataGrid TItem="Product" Items="products"
+                Pageable="true" PageSize="10"
+                Filterable="true" Sortable="true"
+                SelectionMode="BlazorDataGridSelectionMode.Multiple"
+                ShowFooter="true">
+    <BlazorDataGridColumn TItem="Product" Field="Id" Title="ID" Align="BlazorDataGridColumnAlign.Right" Frozen="true" />
+    <BlazorDataGridColumn TItem="Product" Field="Name" />
+    <BlazorDataGridColumn TItem="Product" Field="Price" Format="C2" Align="BlazorDataGridColumnAlign.Right"
+                          Aggregate="BlazorDataGridAggregateType.Sum" />
+</BlazorDataGrid>
 ```
 
 1. Reference the library from your Blazor app:
@@ -96,13 +95,13 @@ templates, virtualization, server-side data, theming/RTL).
 Set the `OnRead` callback to take over sorting/filtering/paging (e.g. against a database):
 
 ```csharp
-async Task<DataGridReadResult<Product>> Load(DataGridReadRequest req)
+async Task<BlazorDataGridReadResult<Product>> Load(BlazorDataGridReadRequest req)
 {
     var query = db.Products.AsQueryable();
     // apply req.Filters / req.Sorts ...
     var total = query.Count();
     var items = query.Skip(req.Skip).Take(req.Take ?? total).ToList();
-    return new DataGridReadResult<Product>(items, total);
+    return new BlazorDataGridReadResult<Product>(items, total);
 }
 ```
 

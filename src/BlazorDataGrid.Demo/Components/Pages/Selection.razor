@@ -6,21 +6,21 @@
 <p class="lead">Single or multiple selection with a select-all header checkbox and two-way binding.</p>
 
 <div class="toolbar-row">
-    <button class="btn @(_mode == GridSelectionMode.Single ? "btn-accent" : "")"
-            @onclick="() => _mode = GridSelectionMode.Single">Single</button>
-    <button class="btn @(_mode == GridSelectionMode.Multiple ? "btn-accent" : "")"
-            @onclick="() => _mode = GridSelectionMode.Multiple">Multiple</button>
+    <button class="btn @(_mode == BlazorDataGridSelectionMode.Single ? "btn-accent" : "")"
+            @onclick="() => _mode = BlazorDataGridSelectionMode.Single">Single</button>
+    <button class="btn @(_mode == BlazorDataGridSelectionMode.Multiple ? "btn-accent" : "")"
+            @onclick="() => _mode = BlazorDataGridSelectionMode.Multiple">Multiple</button>
     <span class="hint">@_selected.Count selected</span>
 </div>
 
 <div class="card">
-    <DataGrid TItem="Product" Items="_products" Height="420px"
+    <BlazorDataGrid TItem="Product" Items="_products" Height="420px"
               SelectionMode="_mode" @bind-SelectedItems="_selected" Pageable="true" PageSize="10">
-        <DataGridColumn TItem="Product" Field="Id" Title="ID" Width="70px" Align="ColumnAlign.Right" />
-        <DataGridColumn TItem="Product" Field="Name" Width="220px" />
-        <DataGridColumn TItem="Product" Field="Category" />
-        <DataGridColumn TItem="Product" Field="Price" Format="C2" Align="ColumnAlign.Right" />
-    </DataGrid>
+        <BlazorDataGridColumn TItem="Product" Field="Id" Title="ID" Width="70px" Align="BlazorDataGridColumnAlign.Right" />
+        <BlazorDataGridColumn TItem="Product" Field="Name" Width="220px" />
+        <BlazorDataGridColumn TItem="Product" Field="Category" />
+        <BlazorDataGridColumn TItem="Product" Field="Price" Format="C2" Align="BlazorDataGridColumnAlign.Right" />
+    </BlazorDataGrid>
 </div>
 
 @if (_selected.Any())
@@ -38,6 +38,6 @@
 
 @code {
     private List<Product> _products = SampleData.Generate(60);
-    private GridSelectionMode _mode = GridSelectionMode.Multiple;
+    private BlazorDataGridSelectionMode _mode = BlazorDataGridSelectionMode.Multiple;
     private IReadOnlyList<Product> _selected = new List<Product>();
 }

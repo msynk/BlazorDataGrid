@@ -3,14 +3,14 @@ using Microsoft.AspNetCore.Components;
 namespace BlazorDataGrid;
 
 /// <summary>
-/// Defines a column inside a <see cref="DataGrid{TItem}"/>. Place these as child
+/// Defines a column inside a <see cref="BlazorDataGrid{TItem}"/>. Place these as child
 /// content of the grid. A column can be bound to a property via <see cref="Field"/>
 /// or be a purely template-driven column.
 /// </summary>
 /// <typeparam name="TItem">The row item type.</typeparam>
-public class DataGridColumn<TItem> : ComponentBase, IDisposable
+public class BlazorDataGridColumn<TItem> : ComponentBase, IDisposable
 {
-    [CascadingParameter] internal DataGrid<TItem>? Grid { get; set; }
+    [CascadingParameter] internal BlazorDataGrid<TItem>? Grid { get; set; }
 
     /// <summary>Name of the property this column is bound to. Supports nested paths ("Address.City").</summary>
     [Parameter] public string? Field { get; set; }
@@ -38,14 +38,14 @@ public class DataGridColumn<TItem> : ComponentBase, IDisposable
 
     [Parameter] public bool Visible { get; set; } = true;
 
-    [Parameter] public ColumnAlign Align { get; set; } = ColumnAlign.Left;
+    [Parameter] public BlazorDataGridColumnAlign Align { get; set; } = BlazorDataGridColumnAlign.Left;
 
     /// <summary>A .NET format string applied to the value (e.g. "C2", "yyyy-MM-dd").</summary>
     [Parameter] public string? Format { get; set; }
 
-    [Parameter] public ColumnDataType DataType { get; set; } = ColumnDataType.Auto;
+    [Parameter] public BlazorDataGridColumnDataType DataType { get; set; } = BlazorDataGridColumnDataType.Auto;
 
-    [Parameter] public AggregateType Aggregate { get; set; } = AggregateType.None;
+    [Parameter] public BlazorDataGridAggregateType Aggregate { get; set; } = BlazorDataGridAggregateType.None;
 
     /// <summary>Format string for the aggregate value. Falls back to <see cref="Format"/>.</summary>
     [Parameter] public string? AggregateFormat { get; set; }
@@ -63,14 +63,14 @@ public class DataGridColumn<TItem> : ComponentBase, IDisposable
     [Parameter] public RenderFragment<TItem>? EditTemplate { get; set; }
 
     /// <summary>Custom rendering for the footer/aggregate cell.</summary>
-    [Parameter] public RenderFragment<AggregateResult>? FooterTemplate { get; set; }
+    [Parameter] public RenderFragment<BlazorDataGridAggregateResult>? FooterTemplate { get; set; }
 
     // ---- Runtime state (managed by the grid) ----
 
     /// <summary>Current resolved width applied via inline style (set by resizing).</summary>
     internal double? ResizedWidth { get; set; }
 
-    internal PropertyAccessor<TItem>? Accessor { get; private set; }
+    internal BlazorDataGridPropertyAccessor<TItem>? Accessor { get; private set; }
 
     internal string Id => ColumnId ?? Field ?? $"col-{GetHashCode():x}";
 
@@ -78,34 +78,34 @@ public class DataGridColumn<TItem> : ComponentBase, IDisposable
 
     internal bool HasField => !string.IsNullOrEmpty(Field);
 
-    internal ColumnDataType EffectiveDataType
+    internal BlazorDataGridColumnDataType EffectiveDataType
     {
         get
         {
-            if (DataType != ColumnDataType.Auto) return DataType;
-            if (Accessor is null) return ColumnDataType.Text;
+            if (DataType != BlazorDataGridColumnDataType.Auto) return DataType;
+            if (Accessor is null) return BlazorDataGridColumnDataType.Text;
             var t = Accessor.UnderlyingType;
-            if (t == typeof(bool)) return ColumnDataType.Boolean;
-            if (t.IsEnum) return ColumnDataType.Enum;
-            if (t == typeof(DateTime) || t == typeof(DateOnly) || t == typeof(DateTimeOffset)) return ColumnDataType.Date;
+            if (t == typeof(bool)) return BlazorDataGridColumnDataType.Boolean;
+            if (t.IsEnum) return BlazorDataGridColumnDataType.Enum;
+            if (t == typeof(DateTime) || t == typeof(DateOnly) || t == typeof(DateTimeOffset)) return BlazorDataGridColumnDataType.Date;
             if (t == typeof(int) || t == typeof(long) || t == typeof(short) || t == typeof(byte)
                 || t == typeof(double) || t == typeof(float) || t == typeof(decimal))
-                return ColumnDataType.Number;
-            return ColumnDataType.Text;
+                return BlazorDataGridColumnDataType.Number;
+            return BlazorDataGridColumnDataType.Text;
         }
     }
 
     protected override void OnInitialized()
     {
         if (Grid is null)
-            throw new InvalidOperationException($"{nameof(DataGridColumn<TItem>)} must be used inside a {nameof(DataGrid<TItem>)}.");
+            throw new InvalidOperationException($"{nameof(BlazorDataGridColumn<TItem>)} must be used inside a {nameof(BlazorDataGrid<TItem>)}.");
         Grid.AddColumn(this);
     }
 
     protected override void OnParametersSet()
     {
         if (HasField)
-            Accessor = PropertyAccessor<TItem>.For(Field!);
+            Accessor = BlazorDataGridPropertyAccessor<TItem>.For(Field!);
     }
 
     public void Dispose() => Grid?.RemoveColumn(this);

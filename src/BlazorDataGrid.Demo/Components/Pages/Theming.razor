@@ -21,16 +21,16 @@
 </div>
 
 <div class="card">
-    <DataGrid TItem="Product" Items="_products" Height="420px"
+    <BlazorDataGrid TItem="Product" Items="_products" Height="420px"
               Class="@_theme" Bordered="_bordered" Striped="_striped"
-              Direction="@(_rtl ? GridDirection.Rtl : GridDirection.Ltr)"
+              Direction="@(_rtl ? BlazorDataGridDirection.Rtl : BlazorDataGridDirection.Ltr)"
               Sortable="true" Pageable="true" PageSize="8">
-        <DataGridColumn TItem="Product" Field="Id" Title="ID" Width="70px" Align="ColumnAlign.Right" Frozen="true" />
-        <DataGridColumn TItem="Product" Field="Name" Width="220px" />
-        <DataGridColumn TItem="Product" Field="Category" />
-        <DataGridColumn TItem="Product" Field="Price" Format="C2" Align="ColumnAlign.Right" />
-        <DataGridColumn TItem="Product" Field="Stock" Align="ColumnAlign.Right" />
-    </DataGrid>
+        <BlazorDataGridColumn TItem="Product" Field="Id" Title="ID" Width="70px" Align="BlazorDataGridColumnAlign.Right" Frozen="true" />
+        <BlazorDataGridColumn TItem="Product" Field="Name" Width="220px" />
+        <BlazorDataGridColumn TItem="Product" Field="Category" />
+        <BlazorDataGridColumn TItem="Product" Field="Price" Format="C2" Align="BlazorDataGridColumnAlign.Right" />
+        <BlazorDataGridColumn TItem="Product" Field="Stock" Align="BlazorDataGridColumnAlign.Right" />
+    </BlazorDataGrid>
 </div>
 
 <h2>Custom theme</h2>

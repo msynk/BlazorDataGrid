@@ -6,7 +6,7 @@
     @ChildContent
 </CascadingValue>
 
-<div class="@RootClasses()" style="@Style" dir="@(Direction == GridDirection.Rtl ? "rtl" : "ltr")">
+<div class="@RootClasses()" style="@Style" dir="@(Direction == BlazorDataGridDirection.Rtl ? "rtl" : "ltr")">
 
     @* ---------------------------------------------------------- Toolbar *@
     @if (ShowToolbar || ToolbarTemplate is not null || ShowColumnChooser || ShowCsvExport || (Editable && NewItemFactory is not null))
@@ -51,7 +51,7 @@
         </div>
     }
 
-    @if (Pageable && (PagerPosition is PagerPosition.Top or PagerPosition.TopAndBottom))
+    @if (Pageable && (PagerPosition is BlazorDataGridPagerPosition.Top or BlazorDataGridPagerPosition.TopAndBottom))
     {
         @RenderPager
     }
@@ -100,7 +100,7 @@
                                     }
                                     @if (sort is not null)
                                     {
-                                        <span class="bdg-sort-icon">@(sort.Direction == SortDirection.Ascending ? "▲" : "▼")</span>
+                                        <span class="bdg-sort-icon">@(sort.Direction == BlazorDataGridSortDirection.Ascending ? "▲" : "▼")</span>
                                         @if (MultiSort && _sorts.Count > 1)
                                         {
                                             <span class="bdg-sort-priority">@sort.Priority</span>
@@ -149,7 +149,7 @@
                                     {
                                         <input class="bdg-filter-input" placeholder="Filter…"
                                                value="@(GetFilter(column)?.Value)"
-                                               @onchange="e => SetFilterAsync(column, FilterOperator.Contains, e.Value)" />
+                                               @onchange="e => SetFilterAsync(column, BlazorDataGridFilterOperator.Contains, e.Value)" />
                                     }
                                 </div>
                             }
@@ -165,7 +165,7 @@
             <div class="bdg-body" role="rowgroup">
                 @if (PendingNewItem is not null)
                 {
-                    <DataGridRow TItem="TItem" Grid="this" Item="PendingNewItem" />
+                    <BlazorDataGridRow TItem="TItem" Grid="this" Item="PendingNewItem" />
                 }
                 @if (Loading)
                 {
@@ -206,7 +206,7 @@
                         {
                             @foreach (var item in group.Items)
                             {
-                                <DataGridRow TItem="TItem" Grid="this" Item="item" @key="item" />
+                                <BlazorDataGridRow TItem="TItem" Grid="this" Item="item" @key="item" />
                             }
                         }
                     }
@@ -214,14 +214,14 @@
                 else if (UseVirtualization)
                 {
                     <Virtualize Items="VirtualRows" ItemSize="RowHeight" Context="item" TItem="TItem">
-                        <DataGridRow TItem="TItem" Grid="this" Item="item" />
+                        <BlazorDataGridRow TItem="TItem" Grid="this" Item="item" />
                     </Virtualize>
                 }
                 else
                 {
                     @foreach (var item in _pageItems)
                     {
-                        <DataGridRow TItem="TItem" Grid="this" Item="item" @key="item" />
+                        <BlazorDataGridRow TItem="TItem" Grid="this" Item="item" @key="item" />
                     }
                 }
             </div>
@@ -262,7 +262,7 @@
         </div>
     </div>
 
-    @if (Pageable && (PagerPosition is PagerPosition.Bottom or PagerPosition.TopAndBottom))
+    @if (Pageable && (PagerPosition is BlazorDataGridPagerPosition.Bottom or BlazorDataGridPagerPosition.TopAndBottom))
     {
         @RenderPager
     }
@@ -291,7 +291,7 @@
         }
     }
 
-    private async Task OnHeaderClick(DataGridColumn<TItem> column, MouseEventArgs e)
+    private async Task OnHeaderClick(BlazorDataGridColumn<TItem> column, MouseEventArgs e)
     {
         if (!ColumnSortable(column)) return;
         await ToggleSortAsync(column, MultiSort && (e.CtrlKey || e.MetaKey));

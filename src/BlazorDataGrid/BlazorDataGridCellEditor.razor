@@ -3,25 +3,25 @@
 
 @switch (Column.EffectiveDataType)
 {
-    case ColumnDataType.Boolean:
+    case BlazorDataGridColumnDataType.Boolean:
         <input type="checkbox" class="bdg-editor bdg-editor-check"
                checked="@(GetBool())"
                @onchange="e => Set(e.Value)" />
         break;
 
-    case ColumnDataType.Number:
+    case BlazorDataGridColumnDataType.Number:
         <input type="number" class="bdg-editor" step="any"
                value="@(GetString())"
                @onchange="e => Set(e.Value)" />
         break;
 
-    case ColumnDataType.Date:
+    case BlazorDataGridColumnDataType.Date:
         <input type="date" class="bdg-editor"
                value="@(GetDate())"
                @onchange="e => Set(e.Value)" />
         break;
 
-    case ColumnDataType.Enum:
+    case BlazorDataGridColumnDataType.Enum:
         <select class="bdg-editor" value="@(GetString())" @onchange="e => Set(e.Value)">
             @foreach (var name in Enum.GetNames(Column.Accessor!.UnderlyingType))
             {
@@ -38,8 +38,8 @@
 }
 
 @code {
-    [Parameter, EditorRequired] public DataGrid<TItem> Grid { get; set; } = default!;
-    [Parameter, EditorRequired] public DataGridColumn<TItem> Column { get; set; } = default!;
+    [Parameter, EditorRequired] public BlazorDataGrid<TItem> Grid { get; set; } = default!;
+    [Parameter, EditorRequired] public BlazorDataGridColumn<TItem> Column { get; set; } = default!;
     [Parameter, EditorRequired] public TItem Item { get; set; } = default!;
 
     private object? Value => Column.GetValue(Item);

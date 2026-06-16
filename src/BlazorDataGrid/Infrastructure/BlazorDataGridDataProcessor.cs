@@ -2,25 +2,15 @@ using System.Globalization;
 
 namespace BlazorDataGrid;
 
-/// <summary>A materialized group of rows produced by grouping.</summary>
-public sealed class GridGroup<TItem>
-{
-    public required string ColumnId { get; init; }
-    public required object? Key { get; init; }
-    public string KeyText { get; init; } = string.Empty;
-    public List<TItem> Items { get; init; } = new();
-    public List<AggregateResult> Aggregates { get; init; } = new();
-}
-
 /// <summary>
 /// Client-side data pipeline: filtering, multi-sorting, grouping and aggregation.
 /// </summary>
-public static class GridDataProcessor
+public static class BlazorDataGridDataProcessor
 {
     public static IReadOnlyList<TItem> Filter<TItem>(
         IEnumerable<TItem> source,
-        IReadOnlyList<FilterDescriptor> filters,
-        IReadOnlyDictionary<string, DataGridColumn<TItem>> columns)
+        IReadOnlyList<BlazorDataGridFilterDescriptor> filters,
+        IReadOnlyDictionary<string, BlazorDataGridColumn<TItem>> columns)
     {
         if (filters.Count == 0)
             return source as IReadOnlyList<TItem> ?? source.ToList();
@@ -39,10 +29,10 @@ public static class GridDataProcessor
 
     public static IReadOnlyList<TItem> Sort<TItem>(
         IReadOnlyList<TItem> source,
-        IReadOnlyList<SortDescriptor> sorts,
-        IReadOnlyDictionary<string, DataGridColumn<TItem>> columns)
+        IReadOnlyList<BlazorDataGridSortDescriptor> sorts,
+        IReadOnlyDictionary<string, BlazorDataGridColumn<TItem>> columns)
     {
-        var active = sorts.Where(s => s.Direction != SortDirection.None).OrderBy(s => s.Priority).ToList();
+        var active = sorts.Where(s => s.Direction != BlazorDataGridSortDirection.None).OrderBy(s => s.Priority).ToList();
         if (active.Count == 0) return source;
 
         IOrderedEnumerable<TItem>? ordered = null;
@@ -52,16 +42,16 @@ public static class GridDataProcessor
                 continue;
             var accessor = column.Accessor;
             Func<TItem, object?> key = item => accessor.GetValue(item);
-            var comparer = ValueComparer.Instance;
+            var comparer = BlazorDataGridValueComparer.Instance;
             if (ordered is null)
             {
-                ordered = sort.Direction == SortDirection.Ascending
+                ordered = sort.Direction == BlazorDataGridSortDirection.Ascending
                     ? source.OrderBy(key, comparer)
                     : source.OrderByDescending(key, comparer);
             }
             else
             {
-                ordered = sort.Direction == SortDirection.Ascending
+                ordered = sort.Direction == BlazorDataGridSortDirection.Ascending
                     ? ordered.ThenBy(key, comparer)
                     : ordered.ThenByDescending(key, comparer);
             }
@@ -69,12 +59,12 @@ public static class GridDataProcessor
         return ordered?.ToList() ?? source;
     }
 
-    public static List<GridGroup<TItem>> Group<TItem>(
+    public static List<BlazorDataGridGroup<TItem>> Group<TItem>(
         IReadOnlyList<TItem> source,
-        IReadOnlyList<GroupDescriptor> groups,
-        IReadOnlyDictionary<string, DataGridColumn<TItem>> columns)
+        IReadOnlyList<BlazorDataGridGroupDescriptor> groups,
+        IReadOnlyDictionary<string, BlazorDataGridColumn<TItem>> columns)
     {
-        var result = new List<GridGroup<TItem>>();
+        var result = new List<BlazorDataGridGroup<TItem>>();
         if (groups.Count == 0) return result;
 
         // Only single-level grouping is materialized here (top-level group).
@@ -84,7 +74,7 @@ public static class GridDataProcessor
 
         var grouped = source
             .GroupBy(item => column.Accessor!.GetValue(item))
-            .Select(g => new GridGroup<TItem>
+            .Select(g => new BlazorDataGridGroup<TItem>
             {
                 ColumnId = group.ColumnId,
                 Key = g.Key,
@@ -92,9 +82,9 @@ public static class GridDataProcessor
                 Items = g.ToList()
             });
 
-        grouped = group.Direction == SortDirection.Descending
-            ? grouped.OrderByDescending(g => g.Key, ValueComparer.Instance)
-            : grouped.OrderBy(g => g.Key, ValueComparer.Instance);
+        grouped = group.Direction == BlazorDataGridSortDirection.Descending
+            ? grouped.OrderByDescending(g => g.Key, BlazorDataGridValueComparer.Instance)
+            : grouped.OrderBy(g => g.Key, BlazorDataGridValueComparer.Instance);
 
         result = grouped.ToList();
 
@@ -104,20 +94,20 @@ public static class GridDataProcessor
         return result;
     }
 
-    public static List<AggregateResult> Aggregate<TItem>(
+    public static List<BlazorDataGridAggregateResult> Aggregate<TItem>(
         IReadOnlyList<TItem> source,
-        IEnumerable<DataGridColumn<TItem>> columns)
+        IEnumerable<BlazorDataGridColumn<TItem>> columns)
     {
-        var results = new List<AggregateResult>();
+        var results = new List<BlazorDataGridAggregateResult>();
         foreach (var column in columns)
         {
-            if (column.Aggregate == AggregateType.None || column.Accessor is null) continue;
+            if (column.Aggregate == BlazorDataGridAggregateType.None || column.Accessor is null) continue;
             var value = ComputeAggregate(source, column);
             var format = column.AggregateFormat ?? column.Format;
             var formatted = value is IFormattable fmt && !string.IsNullOrEmpty(format)
                 ? fmt.ToString(format, CultureInfo.CurrentCulture)
                 : value?.ToString() ?? string.Empty;
-            results.Add(new AggregateResult
+            results.Add(new BlazorDataGridAggregateResult
             {
                 ColumnId = column.Id,
                 Type = column.Aggregate,
@@ -128,26 +118,26 @@ public static class GridDataProcessor
         return results;
     }
 
-    private static object? ComputeAggregate<TItem>(IReadOnlyList<TItem> source, DataGridColumn<TItem> column)
+    private static object? ComputeAggregate<TItem>(IReadOnlyList<TItem> source, BlazorDataGridColumn<TItem> column)
     {
         var accessor = column.Accessor!;
         switch (column.Aggregate)
         {
-            case AggregateType.Count:
+            case BlazorDataGridAggregateType.Count:
                 return source.Count;
-            case AggregateType.Sum:
-            case AggregateType.Average:
+            case BlazorDataGridAggregateType.Sum:
+            case BlazorDataGridAggregateType.Average:
             {
                 double sum = 0; int n = 0;
                 foreach (var item in source)
                 {
                     if (TryToDouble(accessor.GetValue(item), out var d)) { sum += d; n++; }
                 }
-                if (column.Aggregate == AggregateType.Sum) return sum;
+                if (column.Aggregate == BlazorDataGridAggregateType.Sum) return sum;
                 return n == 0 ? 0d : sum / n;
             }
-            case AggregateType.Min:
-            case AggregateType.Max:
+            case BlazorDataGridAggregateType.Min:
+            case BlazorDataGridAggregateType.Max:
             {
                 object? best = null;
                 foreach (var item in source)
@@ -155,8 +145,8 @@ public static class GridDataProcessor
                     var v = accessor.GetValue(item);
                     if (v is null) continue;
                     if (best is null) { best = v; continue; }
-                    var cmp = ValueComparer.Instance.Compare(v, best);
-                    if (column.Aggregate == AggregateType.Min ? cmp < 0 : cmp > 0) best = v;
+                    var cmp = BlazorDataGridValueComparer.Instance.Compare(v, best);
+                    if (column.Aggregate == BlazorDataGridAggregateType.Min ? cmp < 0 : cmp > 0) best = v;
                 }
                 return best;
             }
@@ -173,13 +163,13 @@ public static class GridDataProcessor
         catch { return false; }
     }
 
-    private static bool Matches(object? value, FilterDescriptor filter)
+    private static bool Matches(object? value, BlazorDataGridFilterDescriptor filter)
     {
         switch (filter.Operator)
         {
-            case FilterOperator.IsEmpty:
+            case BlazorDataGridFilterOperator.IsEmpty:
                 return value is null || string.IsNullOrEmpty(value.ToString());
-            case FilterOperator.IsNotEmpty:
+            case BlazorDataGridFilterOperator.IsNotEmpty:
                 return value is not null && !string.IsNullOrEmpty(value.ToString());
         }
 
@@ -187,19 +177,19 @@ public static class GridDataProcessor
             return true;
 
         // Numeric / comparable operators
-        if (filter.Operator is FilterOperator.GreaterThan or FilterOperator.GreaterThanOrEqual
-            or FilterOperator.LessThan or FilterOperator.LessThanOrEqual
-            or FilterOperator.Equals or FilterOperator.NotEquals)
+        if (filter.Operator is BlazorDataGridFilterOperator.GreaterThan or BlazorDataGridFilterOperator.GreaterThanOrEqual
+            or BlazorDataGridFilterOperator.LessThan or BlazorDataGridFilterOperator.LessThanOrEqual
+            or BlazorDataGridFilterOperator.Equals or BlazorDataGridFilterOperator.NotEquals)
         {
-            var cmp = ValueComparer.Instance.Compare(value, CoerceToValueType(value, filter.Value));
+            var cmp = BlazorDataGridValueComparer.Instance.Compare(value, CoerceToValueType(value, filter.Value));
             return filter.Operator switch
             {
-                FilterOperator.GreaterThan => cmp > 0,
-                FilterOperator.GreaterThanOrEqual => cmp >= 0,
-                FilterOperator.LessThan => cmp < 0,
-                FilterOperator.LessThanOrEqual => cmp <= 0,
-                FilterOperator.Equals => cmp == 0,
-                FilterOperator.NotEquals => cmp != 0,
+                BlazorDataGridFilterOperator.GreaterThan => cmp > 0,
+                BlazorDataGridFilterOperator.GreaterThanOrEqual => cmp >= 0,
+                BlazorDataGridFilterOperator.LessThan => cmp < 0,
+                BlazorDataGridFilterOperator.LessThanOrEqual => cmp <= 0,
+                BlazorDataGridFilterOperator.Equals => cmp == 0,
+                BlazorDataGridFilterOperator.NotEquals => cmp != 0,
                 _ => true
             };
         }
@@ -209,10 +199,10 @@ public static class GridDataProcessor
         var term = filter.Value.ToString() ?? string.Empty;
         return filter.Operator switch
         {
-            FilterOperator.Contains => text.Contains(term, StringComparison.OrdinalIgnoreCase),
-            FilterOperator.DoesNotContain => !text.Contains(term, StringComparison.OrdinalIgnoreCase),
-            FilterOperator.StartsWith => text.StartsWith(term, StringComparison.OrdinalIgnoreCase),
-            FilterOperator.EndsWith => text.EndsWith(term, StringComparison.OrdinalIgnoreCase),
+            BlazorDataGridFilterOperator.Contains => text.Contains(term, StringComparison.OrdinalIgnoreCase),
+            BlazorDataGridFilterOperator.DoesNotContain => !text.Contains(term, StringComparison.OrdinalIgnoreCase),
+            BlazorDataGridFilterOperator.StartsWith => text.StartsWith(term, StringComparison.OrdinalIgnoreCase),
+            BlazorDataGridFilterOperator.EndsWith => text.EndsWith(term, StringComparison.OrdinalIgnoreCase),
             _ => true
         };
     }
@@ -229,29 +219,5 @@ public static class GridDataProcessor
             return Convert.ChangeType(filterValue, target, CultureInfo.CurrentCulture);
         }
         catch { return filterValue; }
-    }
-}
-
-/// <summary>Null-safe comparer that orders nulls first and falls back to string comparison.</summary>
-internal sealed class ValueComparer : IComparer<object?>
-{
-    public static readonly ValueComparer Instance = new();
-
-    public int Compare(object? x, object? y)
-    {
-        if (ReferenceEquals(x, y)) return 0;
-        if (x is null) return -1;
-        if (y is null) return 1;
-
-        if (x is IComparable cx && x.GetType() == y.GetType())
-            return cx.CompareTo(y);
-
-        if (x is IComparable cx2)
-        {
-            try { return cx2.CompareTo(Convert.ChangeType(y, x.GetType())); }
-            catch { /* fall through */ }
-        }
-
-        return string.Compare(x.ToString(), y.ToString(), StringComparison.OrdinalIgnoreCase);
     }
 }

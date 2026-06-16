@@ -6,7 +6,7 @@
 <p class="lead">Customize any cell, header or footer, and expand rows to reveal detail content.</p>
 
 <div class="card">
-    <DataGrid TItem="Product" Items="_products" Height="470px" Sortable="true" ShowFooter="true">
+    <BlazorDataGrid TItem="Product" Items="_products" Height="470px" Sortable="true" ShowFooter="true">
         <DetailTemplate Context="p">
             <div style="display:flex; gap:32px; flex-wrap:wrap;">
                 <div><strong>Supplier</strong><br />@p.Supplier</div>
@@ -17,11 +17,11 @@
         </DetailTemplate>
 
         <ChildContent>
-            <DataGridColumn TItem="Product" Field="Name" Width="220px">
+            <BlazorDataGridColumn TItem="Product" Field="Name" Width="220px">
                 <HeaderTemplate>📦 Product</HeaderTemplate>
-            </DataGridColumn>
-            <DataGridColumn TItem="Product" Field="Category" />
-            <DataGridColumn TItem="Product" Field="Rating" Title="Rating" Align="ColumnAlign.Left">
+            </BlazorDataGridColumn>
+            <BlazorDataGridColumn TItem="Product" Field="Category" />
+            <BlazorDataGridColumn TItem="Product" Field="Rating" Title="Rating" Align="BlazorDataGridColumnAlign.Left">
                 <Template Context="p">
                     <span title="@p.Rating">
                         @for (var i = 0; i < 5; i++)
@@ -30,22 +30,22 @@
                         }
                     </span>
                 </Template>
-            </DataGridColumn>
-            <DataGridColumn TItem="Product" Field="Price" Format="C2" Align="ColumnAlign.Right"
-                            Aggregate="AggregateType.Sum">
+            </BlazorDataGridColumn>
+            <BlazorDataGridColumn TItem="Product" Field="Price" Format="C2" Align="BlazorDataGridColumnAlign.Right"
+                            Aggregate="BlazorDataGridAggregateType.Sum">
                 <FooterTemplate Context="agg">
                     <span>Total: @agg.FormattedValue</span>
                 </FooterTemplate>
-            </DataGridColumn>
-            <DataGridColumn TItem="Product" Field="Stock" Align="ColumnAlign.Right">
+            </BlazorDataGridColumn>
+            <BlazorDataGridColumn TItem="Product" Field="Stock" Align="BlazorDataGridColumnAlign.Right">
                 <Template Context="p">
                     <span class="badge @(p.Stock == 0 ? "badge-off" : "badge-on")">
                         @(p.Stock == 0 ? "Out of stock" : $"{p.Stock} in stock")
                     </span>
                 </Template>
-            </DataGridColumn>
+            </BlazorDataGridColumn>
         </ChildContent>
-    </DataGrid>
+    </BlazorDataGrid>
 </div>
 
 <p class="hint">Click the ▸ toggle on the left of a row to expand its detail panel.</p>

@@ -7,20 +7,20 @@
 
 <p>
     When <code>OnRead</code> is set, the grid stops processing data locally and instead hands you a
-    <code>DataGridReadRequest</code> describing the current sort, filters and page window. Return the
+    <code>BlazorDataGridReadRequest</code> describing the current sort, filters and page window. Return the
     page of items plus the total count. This example simulates a database with a small delay.
 </p>
 
 <div class="card">
-    <DataGrid TItem="Product" OnRead="LoadData" Height="430px"
+    <BlazorDataGrid TItem="Product" OnRead="LoadData" Height="430px"
               Pageable="true" PageSize="10" Sortable="true" Filterable="true" Loading="_loading">
-        <DataGridColumn TItem="Product" Field="Id" Title="ID" Width="70px" Align="ColumnAlign.Right" Filterable="false" />
-        <DataGridColumn TItem="Product" Field="Name" Width="220px" />
-        <DataGridColumn TItem="Product" Field="Category" />
-        <DataGridColumn TItem="Product" Field="Supplier" />
-        <DataGridColumn TItem="Product" Field="Price" Format="C2" Align="ColumnAlign.Right" />
-        <DataGridColumn TItem="Product" Field="Stock" Align="ColumnAlign.Right" />
-    </DataGrid>
+        <BlazorDataGridColumn TItem="Product" Field="Id" Title="ID" Width="70px" Align="BlazorDataGridColumnAlign.Right" Filterable="false" />
+        <BlazorDataGridColumn TItem="Product" Field="Name" Width="220px" />
+        <BlazorDataGridColumn TItem="Product" Field="Category" />
+        <BlazorDataGridColumn TItem="Product" Field="Supplier" />
+        <BlazorDataGridColumn TItem="Product" Field="Price" Format="C2" Align="BlazorDataGridColumnAlign.Right" />
+        <BlazorDataGridColumn TItem="Product" Field="Stock" Align="BlazorDataGridColumnAlign.Right" />
+    </BlazorDataGrid>
 </div>
 
 <p class="hint">@_lastRequest</p>
@@ -30,7 +30,7 @@
     private bool _loading;
     private string _lastRequest = "";
 
-    private async Task<DataGridReadResult<Product>> LoadData(DataGridReadRequest request)
+    private async Task<BlazorDataGridReadResult<Product>> LoadData(BlazorDataGridReadRequest request)
     {
         _loading = true;
         await InvokeAsync(StateHasChanged);
@@ -66,7 +66,7 @@
                 nameof(Product.Stock) => p => p.Stock,
                 _ => p => p.Id
             };
-            query = sort.Direction == SortDirection.Descending
+            query = sort.Direction == BlazorDataGridSortDirection.Descending
                 ? query.OrderByDescending(key)
                 : query.OrderBy(key);
         }
@@ -77,6 +77,6 @@
 
         _lastRequest = $"Last request → skip {request.Skip}, take {request.Take}, sorts: {request.Sorts.Count}, filters: {request.Filters.Count}, total: {total}";
         _loading = false;
-        return new DataGridReadResult<Product>(items, total);
+        return new BlazorDataGridReadResult<Product>(items, total);
     }
 }

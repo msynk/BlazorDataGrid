@@ -8,9 +8,9 @@ namespace BlazorDataGrid;
 /// Builds and caches fast compiled delegates to read and write a property on
 /// <typeparamref name="TItem"/> by name, supporting nested paths like "Address.City".
 /// </summary>
-public sealed class PropertyAccessor<TItem>
+public sealed class BlazorDataGridPropertyAccessor<TItem>
 {
-    private static readonly ConcurrentDictionary<string, PropertyAccessor<TItem>> Cache = new();
+    private static readonly ConcurrentDictionary<string, BlazorDataGridPropertyAccessor<TItem>> Cache = new();
 
     public string Path { get; }
     public Type PropertyType { get; }
@@ -20,7 +20,7 @@ public sealed class PropertyAccessor<TItem>
     private readonly Func<TItem, object?> _getter;
     private readonly Action<TItem, object?>? _setter;
 
-    private PropertyAccessor(string path, Type propertyType, bool canWrite,
+    private BlazorDataGridPropertyAccessor(string path, Type propertyType, bool canWrite,
         Func<TItem, object?> getter, Action<TItem, object?>? setter)
     {
         Path = path;
@@ -71,10 +71,10 @@ public sealed class PropertyAccessor<TItem>
         }
     }
 
-    public static PropertyAccessor<TItem> For(string path)
+    public static BlazorDataGridPropertyAccessor<TItem> For(string path)
         => Cache.GetOrAdd(path, Build);
 
-    private static PropertyAccessor<TItem> Build(string path)
+    private static BlazorDataGridPropertyAccessor<TItem> Build(string path)
     {
         var param = Expression.Parameter(typeof(TItem), "x");
         Expression body = param;
@@ -106,6 +106,6 @@ public sealed class PropertyAccessor<TItem>
             setter = Expression.Lambda<Action<TItem, object?>>(assign, param, valueParam).Compile();
         }
 
-        return new PropertyAccessor<TItem>(path, propertyType, canWrite, getter, setter);
+        return new BlazorDataGridPropertyAccessor<TItem>(path, propertyType, canWrite, getter, setter);
     }
 }

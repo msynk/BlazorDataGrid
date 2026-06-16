@@ -30,7 +30,7 @@
                 }
                 else
                 {
-                    <CellEditor TItem="TItem" Grid="Grid" Column="column" Item="Item" />
+                    <BlazorDataGridCellEditor TItem="TItem" Grid="Grid" Column="column" Item="Item" />
                 }
             }
             else if (column.Template is not null)
@@ -71,7 +71,7 @@
 }
 
 @code {
-    [Parameter, EditorRequired] public DataGrid<TItem> Grid { get; set; } = default!;
+    [Parameter, EditorRequired] public BlazorDataGrid<TItem> Grid { get; set; } = default!;
     [Parameter, EditorRequired] public TItem Item { get; set; } = default!;
 
     private bool Selected => Grid.IsRowSelected(Item);
@@ -93,9 +93,9 @@
 
     private string SelectStickyStyle => Grid.HasDetailColumn ? "left:44px;" : "left:0;";
 
-    private string CellClass(DataGridColumn<TItem> column)
+    private string CellClass(BlazorDataGridColumn<TItem> column)
     {
-        var c = "bdg-cell " + DataGrid<TItem>.AlignClass(column.Align);
+        var c = "bdg-cell " + BlazorDataGrid<TItem>.AlignClass(column.Align);
         if (column.Frozen) c += " bdg-sticky";
         if (!string.IsNullOrEmpty(column.CellClass)) c += " " + column.CellClass;
         return c;

@@ -12,19 +12,19 @@
 </p>
 
 <div class="card">
-    <DataGrid TItem="Product" Items="_products" Height="460px"
+    <BlazorDataGrid TItem="Product" Items="_products" Height="460px"
               Editable="true" NewItemFactory="CreateProduct"
               OnRowSave="OnSave" OnRowDelete="OnDelete" OnRowCreate="OnCreate"
               ShowToolbar="true" Pageable="true" PageSize="10" KeyField="p => p.Id">
-        <DataGridColumn TItem="Product" Field="Id" Title="ID" Width="70px" Align="ColumnAlign.Right" Editable="false" />
-        <DataGridColumn TItem="Product" Field="Name" Width="200px" />
-        <DataGridColumn TItem="Product" Field="Category" />
-        <DataGridColumn TItem="Product" Field="Price" Format="C2" Align="ColumnAlign.Right" />
-        <DataGridColumn TItem="Product" Field="Stock" Align="ColumnAlign.Right" />
-        <DataGridColumn TItem="Product" Field="Rating" Format="N1" Align="ColumnAlign.Right" />
-        <DataGridColumn TItem="Product" Field="ReleaseDate" Title="Released" Format="yyyy-MM-dd" />
-        <DataGridColumn TItem="Product" Field="Discontinued" Title="Discontinued" Align="ColumnAlign.Center" />
-    </DataGrid>
+        <BlazorDataGridColumn TItem="Product" Field="Id" Title="ID" Width="70px" Align="BlazorDataGridColumnAlign.Right" Editable="false" />
+        <BlazorDataGridColumn TItem="Product" Field="Name" Width="200px" />
+        <BlazorDataGridColumn TItem="Product" Field="Category" />
+        <BlazorDataGridColumn TItem="Product" Field="Price" Format="C2" Align="BlazorDataGridColumnAlign.Right" />
+        <BlazorDataGridColumn TItem="Product" Field="Stock" Align="BlazorDataGridColumnAlign.Right" />
+        <BlazorDataGridColumn TItem="Product" Field="Rating" Format="N1" Align="BlazorDataGridColumnAlign.Right" />
+        <BlazorDataGridColumn TItem="Product" Field="ReleaseDate" Title="Released" Format="yyyy-MM-dd" />
+        <BlazorDataGridColumn TItem="Product" Field="Discontinued" Title="Discontinued" Align="BlazorDataGridColumnAlign.Center" />
+    </BlazorDataGrid>
 </div>
 
 <p class="hint">@_status</p>

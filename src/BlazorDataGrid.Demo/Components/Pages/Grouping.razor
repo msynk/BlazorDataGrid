@@ -11,19 +11,19 @@
 </p>
 
 <div class="card">
-    <DataGrid TItem="Product" Items="_products" Height="500px"
+    <BlazorDataGrid TItem="Product" Items="_products" Height="500px"
               Groupable="true" ShowFooter="true" Sortable="true">
-        <DataGridColumn TItem="Product" Field="Id" Title="ID" Width="70px" Align="ColumnAlign.Right" Groupable="false" />
-        <DataGridColumn TItem="Product" Field="Name" Width="200px" Groupable="false" />
-        <DataGridColumn TItem="Product" Field="Category" />
-        <DataGridColumn TItem="Product" Field="Supplier" />
-        <DataGridColumn TItem="Product" Field="Price" Format="C2" Align="ColumnAlign.Right"
-                        Aggregate="AggregateType.Sum" Groupable="false" />
-        <DataGridColumn TItem="Product" Field="Stock" Align="ColumnAlign.Right"
-                        Aggregate="AggregateType.Average" AggregateFormat="N0" Groupable="false" />
-        <DataGridColumn TItem="Product" Field="Rating" Format="N1" Align="ColumnAlign.Right"
-                        Aggregate="AggregateType.Max" Groupable="false" />
-    </DataGrid>
+        <BlazorDataGridColumn TItem="Product" Field="Id" Title="ID" Width="70px" Align="BlazorDataGridColumnAlign.Right" Groupable="false" />
+        <BlazorDataGridColumn TItem="Product" Field="Name" Width="200px" Groupable="false" />
+        <BlazorDataGridColumn TItem="Product" Field="Category" />
+        <BlazorDataGridColumn TItem="Product" Field="Supplier" />
+        <BlazorDataGridColumn TItem="Product" Field="Price" Format="C2" Align="BlazorDataGridColumnAlign.Right"
+                        Aggregate="BlazorDataGridAggregateType.Sum" Groupable="false" />
+        <BlazorDataGridColumn TItem="Product" Field="Stock" Align="BlazorDataGridColumnAlign.Right"
+                        Aggregate="BlazorDataGridAggregateType.Average" AggregateFormat="N0" Groupable="false" />
+        <BlazorDataGridColumn TItem="Product" Field="Rating" Format="N1" Align="BlazorDataGridColumnAlign.Right"
+                        Aggregate="BlazorDataGridAggregateType.Max" Groupable="false" />
+    </BlazorDataGrid>
 </div>
 
 <p class="hint">Try grouping by <strong>Category</strong> or <strong>Supplier</strong>.</p>
