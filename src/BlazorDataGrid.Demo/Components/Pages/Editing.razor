@@ -1,0 +1,64 @@
+@page "/editing"
+
+<PageTitle>Inline Editing</PageTitle>
+
+<h1>Inline editing</h1>
+<p class="lead">Add, edit, save, cancel and delete rows with type-aware editors.</p>
+
+<p>
+    The grid renders the right editor per data type automatically: text boxes for strings,
+    number inputs for numerics, checkboxes for booleans, date pickers for dates and dropdowns
+    for enums. Use <code>EditTemplate</code> on a column to supply your own editor.
+</p>
+
+<div class="card">
+    <DataGrid TItem="Product" Items="_products" Height="460px"
+              Editable="true" NewItemFactory="CreateProduct"
+              OnRowSave="OnSave" OnRowDelete="OnDelete" OnRowCreate="OnCreate"
+              ShowToolbar="true" Pageable="true" PageSize="10" KeyField="p => p.Id">
+        <DataGridColumn TItem="Product" Field="Id" Title="ID" Width="70px" Align="ColumnAlign.Right" Editable="false" />
+        <DataGridColumn TItem="Product" Field="Name" Width="200px" />
+        <DataGridColumn TItem="Product" Field="Category" />
+        <DataGridColumn TItem="Product" Field="Price" Format="C2" Align="ColumnAlign.Right" />
+        <DataGridColumn TItem="Product" Field="Stock" Align="ColumnAlign.Right" />
+        <DataGridColumn TItem="Product" Field="Rating" Format="N1" Align="ColumnAlign.Right" />
+        <DataGridColumn TItem="Product" Field="ReleaseDate" Title="Released" Format="yyyy-MM-dd" />
+        <DataGridColumn TItem="Product" Field="Discontinued" Title="Discontinued" Align="ColumnAlign.Center" />
+    </DataGrid>
+</div>
+
+<p class="hint">@_status</p>
+
+@code {
+    private List<Product> _products = SampleData.Generate(25);
+    private int _nextId;
+    private string _status = "";
+
+    protected override void OnInitialized() => _nextId = _products.Max(p => p.Id) + 1;
+
+    private Product CreateProduct() => new()
+    {
+        Id = _nextId++,
+        Name = "New product",
+        Category = Category.Electronics,
+        Price = 0,
+        Stock = 0,
+        Rating = 3,
+        ReleaseDate = DateTime.Today
+    };
+
+    private void OnCreate(Product p) => _status = $"Adding new product #{p.Id}…";
+
+    private void OnSave(Product p)
+    {
+        if (!_products.Contains(p))
+            _products.Insert(0, p);
+        _status = $"Saved {p.Name} (#{p.Id}).";
+    }
+
+    private void OnDelete(Product p)
+    {
+        _products.Remove(p);
+        _status = $"Deleted #{p.Id}.";
+    }
+}

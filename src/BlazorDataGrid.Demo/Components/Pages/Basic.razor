@@ -1,0 +1,36 @@
+@page "/basic"
+
+<PageTitle>Basic &amp; Sorting</PageTitle>
+
+<h1>Basic usage &amp; sorting</h1>
+<p class="lead">Bind a collection, declare columns, and you get sorting out of the box.</p>
+
+<p>
+    Click a header to sort ascending → descending → unsorted. Hold <kbd>Ctrl</kbd>
+    (or <kbd>⌘</kbd>) and click additional headers for multi-column sorting; the small
+    badge shows the sort priority.
+</p>
+
+<div class="card">
+    <DataGrid TItem="Product" Items="_products" Height="430px" MultiSort="true">
+        <DataGridColumn TItem="Product" Field="Id" Title="ID" Width="70px" Align="ColumnAlign.Right" />
+        <DataGridColumn TItem="Product" Field="Name" Width="220px" />
+        <DataGridColumn TItem="Product" Field="Category" />
+        <DataGridColumn TItem="Product" Field="Price" Format="C2" Align="ColumnAlign.Right" />
+        <DataGridColumn TItem="Product" Field="Stock" Align="ColumnAlign.Right" />
+        <DataGridColumn TItem="Product" Field="Rating" Format="N1" Align="ColumnAlign.Right" />
+    </DataGrid>
+</div>
+
+<h2>Markup</h2>
+<div class="card">
+<pre><code>&lt;DataGrid TItem="Product" Items="products" MultiSort="true"&gt;
+    &lt;DataGridColumn TItem="Product" Field="Id" Title="ID" Align="ColumnAlign.Right" /&gt;
+    &lt;DataGridColumn TItem="Product" Field="Name" /&gt;
+    &lt;DataGridColumn TItem="Product" Field="Price" Format="C2" /&gt;
+&lt;/DataGrid&gt;</code></pre>
+</div>
+
+@code {
+    private List<Product> _products = SampleData.Generate(50);
+}

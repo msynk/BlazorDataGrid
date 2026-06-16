@@ -1,0 +1,105 @@
+@typeparam TItem
+@using BlazorDataGrid.Models
+
+<div class="@RowClass" role="row" style="@RowStyle" @onclick="OnRowClick">
+
+    @if (Grid.HasDetailColumn)
+    {
+        <div class="bdg-cell bdg-cell-detail bdg-sticky" style="left:0;" role="gridcell" @onclick:stopPropagation="true">
+            <button type="button" class="bdg-icon-btn" @onclick="() => Grid.ToggleDetail(Item)" aria-label="Toggle details">
+                @(Grid.IsDetailExpanded(Item) ? "▾" : "▸")
+            </button>
+        </div>
+    }
+
+    @if (Grid.HasSelectColumn)
+    {
+        <div class="bdg-cell bdg-cell-select bdg-sticky" style="@SelectStickyStyle" role="gridcell" @onclick:stopPropagation="true">
+            <input type="checkbox" checked="@Selected" @onchange="e => Grid.ToggleRowSelectionAsync(Item, (bool)e.Value!)" />
+        </div>
+    }
+
+    @foreach (var column in Grid.VisibleColumns)
+    {
+        <div class="@CellClass(column)" role="gridcell" style="@Grid.FrozenStyle(column)">
+            @if (Editing && Grid.ColumnEditable(column))
+            {
+                @if (column.EditTemplate is not null)
+                {
+                    @column.EditTemplate(Item)
+                }
+                else
+                {
+                    <CellEditor TItem="TItem" Grid="Grid" Column="column" Item="Item" />
+                }
+            }
+            else if (column.Template is not null)
+            {
+                @column.Template(Item)
+            }
+            else
+            {
+                @column.GetFormattedValue(Item)
+            }
+        </div>
+    }
+
+    @if (Grid.HasCommandColumn)
+    {
+        <div class="bdg-cell bdg-cell-command" role="gridcell" @onclick:stopPropagation="true">
+            @if (Editing)
+            {
+                <button type="button" class="bdg-btn bdg-btn-primary" @onclick="Grid.CommitEditAsync">Save</button>
+                <button type="button" class="bdg-btn" @onclick="Grid.CancelEditAsync">Cancel</button>
+            }
+            else
+            {
+                <button type="button" class="bdg-btn" @onclick="() => Grid.BeginEdit(Item)">Edit</button>
+                <button type="button" class="bdg-btn bdg-btn-danger" @onclick="() => Grid.DeleteRowAsync(Item)">Delete</button>
+            }
+        </div>
+    }
+</div>
+
+@if (Grid.HasDetailColumn && Grid.IsDetailExpanded(Item) && Grid.DetailTemplate is not null)
+{
+    <div class="bdg-detail-row" role="row">
+        <div class="bdg-detail-content" role="gridcell">
+            @Grid.DetailTemplate(Item)
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public DataGrid<TItem> Grid { get; set; } = default!;
+    [Parameter, EditorRequired] public TItem Item { get; set; } = default!;
+
+    private bool Selected => Grid.IsRowSelected(Item);
+    private bool Editing => Grid.IsEditing(Item);
+
+    private string RowClass
+    {
+        get
+        {
+            var c = "bdg-row";
+            if (Selected) c += " bdg-selected";
+            if (Editing) c += " bdg-editing";
+            return c;
+        }
+    }
+
+    private string RowStyle =>
+        $"grid-template-columns:var(--bdg-template);min-height:{Grid.RowHeight.ToString(System.Globalization.CultureInfo.InvariantCulture)}px;";
+
+    private string SelectStickyStyle => Grid.HasDetailColumn ? "left:44px;" : "left:0;";
+
+    private string CellClass(DataGridColumn<TItem> column)
+    {
+        var c = "bdg-cell " + DataGrid<TItem>.AlignClass(column.Align);
+        if (column.Frozen) c += " bdg-sticky";
+        if (!string.IsNullOrEmpty(column.CellClass)) c += " " + column.CellClass;
+        return c;
+    }
+
+    private Task OnRowClick() => Grid.HandleRowClickAsync(Item);
+}

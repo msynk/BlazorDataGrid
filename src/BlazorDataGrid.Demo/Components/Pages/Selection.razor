@@ -1,0 +1,43 @@
+@page "/selection"
+
+<PageTitle>Selection</PageTitle>
+
+<h1>Row selection</h1>
+<p class="lead">Single or multiple selection with a select-all header checkbox and two-way binding.</p>
+
+<div class="toolbar-row">
+    <button class="btn @(_mode == GridSelectionMode.Single ? "btn-accent" : "")"
+            @onclick="() => _mode = GridSelectionMode.Single">Single</button>
+    <button class="btn @(_mode == GridSelectionMode.Multiple ? "btn-accent" : "")"
+            @onclick="() => _mode = GridSelectionMode.Multiple">Multiple</button>
+    <span class="hint">@_selected.Count selected</span>
+</div>
+
+<div class="card">
+    <DataGrid TItem="Product" Items="_products" Height="420px"
+              SelectionMode="_mode" @bind-SelectedItems="_selected" Pageable="true" PageSize="10">
+        <DataGridColumn TItem="Product" Field="Id" Title="ID" Width="70px" Align="ColumnAlign.Right" />
+        <DataGridColumn TItem="Product" Field="Name" Width="220px" />
+        <DataGridColumn TItem="Product" Field="Category" />
+        <DataGridColumn TItem="Product" Field="Price" Format="C2" Align="ColumnAlign.Right" />
+    </DataGrid>
+</div>
+
+@if (_selected.Any())
+{
+    <div class="card">
+        <strong>Selected products</strong>
+        <ul>
+            @foreach (var p in _selected)
+            {
+                <li>@p.Name — @p.Price.ToString("C2")</li>
+            }
+        </ul>
+    </div>
+}
+
+@code {
+    private List<Product> _products = SampleData.Generate(60);
+    private GridSelectionMode _mode = GridSelectionMode.Multiple;
+    private IReadOnlyList<Product> _selected = new List<Product>();
+}

@@ -1,0 +1,82 @@
+@page "/serverside"
+
+<PageTitle>Server-side Data</PageTitle>
+
+<h1>Server-side data</h1>
+<p class="lead">Delegate sorting, filtering and paging to your backend via the <code>OnRead</code> callback.</p>
+
+<p>
+    When <code>OnRead</code> is set, the grid stops processing data locally and instead hands you a
+    <code>DataGridReadRequest</code> describing the current sort, filters and page window. Return the
+    page of items plus the total count. This example simulates a database with a small delay.
+</p>
+
+<div class="card">
+    <DataGrid TItem="Product" OnRead="LoadData" Height="430px"
+              Pageable="true" PageSize="10" Sortable="true" Filterable="true" Loading="_loading">
+        <DataGridColumn TItem="Product" Field="Id" Title="ID" Width="70px" Align="ColumnAlign.Right" Filterable="false" />
+        <DataGridColumn TItem="Product" Field="Name" Width="220px" />
+        <DataGridColumn TItem="Product" Field="Category" />
+        <DataGridColumn TItem="Product" Field="Supplier" />
+        <DataGridColumn TItem="Product" Field="Price" Format="C2" Align="ColumnAlign.Right" />
+        <DataGridColumn TItem="Product" Field="Stock" Align="ColumnAlign.Right" />
+    </DataGrid>
+</div>
+
+<p class="hint">@_lastRequest</p>
+
+@code {
+    private readonly List<Product> _all = SampleData.Generate(523);
+    private bool _loading;
+    private string _lastRequest = "";
+
+    private async Task<DataGridReadResult<Product>> LoadData(DataGridReadRequest request)
+    {
+        _loading = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(250); // simulate latency
+
+        IEnumerable<Product> query = _all;
+
+        // Filtering
+        foreach (var f in request.Filters)
+        {
+            var term = f.Value?.ToString() ?? "";
+            query = f.ColumnId switch
+            {
+                nameof(Product.Name) => query.Where(p => p.Name.Contains(term, StringComparison.OrdinalIgnoreCase)),
+                nameof(Product.Category) => query.Where(p => p.Category.ToString().Contains(term, StringComparison.OrdinalIgnoreCase)),
+                nameof(Product.Supplier) => query.Where(p => p.Supplier.Contains(term, StringComparison.OrdinalIgnoreCase)),
+                nameof(Product.Price) => query.Where(p => p.Price.ToString().Contains(term)),
+                nameof(Product.Stock) => query.Where(p => p.Stock.ToString().Contains(term)),
+                _ => query
+            };
+        }
+
+        // Sorting (first sort descriptor for brevity)
+        var sort = request.Sorts.FirstOrDefault();
+        if (sort is not null)
+        {
+            Func<Product, object> key = sort.ColumnId switch
+            {
+                nameof(Product.Name) => p => p.Name,
+                nameof(Product.Category) => p => p.Category,
+                nameof(Product.Supplier) => p => p.Supplier,
+                nameof(Product.Price) => p => p.Price,
+                nameof(Product.Stock) => p => p.Stock,
+                _ => p => p.Id
+            };
+            query = sort.Direction == SortDirection.Descending
+                ? query.OrderByDescending(key)
+                : query.OrderBy(key);
+        }
+
+        var filtered = query.ToList();
+        var total = filtered.Count;
+        var items = filtered.Skip(request.Skip).Take(request.Take ?? total).ToList();
+
+        _lastRequest = $"Last request → skip {request.Skip}, take {request.Take}, sorts: {request.Sorts.Count}, filters: {request.Filters.Count}, total: {total}";
+        _loading = false;
+        return new DataGridReadResult<Product>(items, total);
+    }
+}

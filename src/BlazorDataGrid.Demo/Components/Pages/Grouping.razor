@@ -1,0 +1,33 @@
+@page "/grouping"
+
+<PageTitle>Grouping &amp; Aggregates</PageTitle>
+
+<h1>Grouping &amp; aggregates</h1>
+<p class="lead">Group rows by a column and compute per-group and grand-total aggregates.</p>
+
+<p>
+    Click the <strong>⊞</strong> button in a groupable column header to group by it (click again to
+    ungroup). Each group is collapsible and shows its own aggregates. The footer shows grand totals.
+</p>
+
+<div class="card">
+    <DataGrid TItem="Product" Items="_products" Height="500px"
+              Groupable="true" ShowFooter="true" Sortable="true">
+        <DataGridColumn TItem="Product" Field="Id" Title="ID" Width="70px" Align="ColumnAlign.Right" Groupable="false" />
+        <DataGridColumn TItem="Product" Field="Name" Width="200px" Groupable="false" />
+        <DataGridColumn TItem="Product" Field="Category" />
+        <DataGridColumn TItem="Product" Field="Supplier" />
+        <DataGridColumn TItem="Product" Field="Price" Format="C2" Align="ColumnAlign.Right"
+                        Aggregate="AggregateType.Sum" Groupable="false" />
+        <DataGridColumn TItem="Product" Field="Stock" Align="ColumnAlign.Right"
+                        Aggregate="AggregateType.Average" AggregateFormat="N0" Groupable="false" />
+        <DataGridColumn TItem="Product" Field="Rating" Format="N1" Align="ColumnAlign.Right"
+                        Aggregate="AggregateType.Max" Groupable="false" />
+    </DataGrid>
+</div>
+
+<p class="hint">Try grouping by <strong>Category</strong> or <strong>Supplier</strong>.</p>
+
+@code {
+    private List<Product> _products = SampleData.Generate(80);
+}

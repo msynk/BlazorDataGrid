@@ -1,0 +1,33 @@
+﻿@inherits LayoutComponentBase
+
+<div class="page">
+    <nav class="sidebar">
+        <div class="brand">
+            <span class="brand-mark">▦</span>
+            <span>BlazorDataGrid</span>
+        </div>
+        <NavLink class="nav-item" href="" Match="NavLinkMatch.All">Overview</NavLink>
+        <NavLink class="nav-item" href="basic">Basic &amp; Sorting</NavLink>
+        <NavLink class="nav-item" href="filtering">Filtering &amp; Paging</NavLink>
+        <NavLink class="nav-item" href="selection">Selection</NavLink>
+        <NavLink class="nav-item" href="editing">Inline Editing</NavLink>
+        <NavLink class="nav-item" href="grouping">Grouping &amp; Aggregates</NavLink>
+        <NavLink class="nav-item" href="columns">Resize / Reorder / Freeze</NavLink>
+        <NavLink class="nav-item" href="templates">Templates &amp; Details</NavLink>
+        <NavLink class="nav-item" href="virtualization">Virtualization</NavLink>
+        <NavLink class="nav-item" href="serverside">Server-side Data</NavLink>
+        <NavLink class="nav-item" href="theming">Theming &amp; RTL</NavLink>
+    </nav>
+
+    <main>
+        <article class="content">
+            @Body
+        </article>
+    </main>
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>

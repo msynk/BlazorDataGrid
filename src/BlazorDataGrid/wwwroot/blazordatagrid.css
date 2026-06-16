@@ -1,0 +1,264 @@
+/* ============================================================
+   BlazorDataGrid - styles
+   Uses CSS custom properties + light-dark() for theming.
+   ============================================================ */
+
+.bdg {
+    /* Theme tokens (override these to customize) */
+    --bdg-font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    --bdg-color: light-dark(#1f2328, #e6e6e6);
+    --bdg-muted: light-dark(#656d76, #9aa4ad);
+    --bdg-bg: light-dark(#ffffff, #1c1f24);
+    --bdg-header-bg: light-dark(#f6f8fa, #22262c);
+    --bdg-row-hover: light-dark(#f3f6fb, #262b32);
+    --bdg-row-selected: light-dark(#dcebff, #173b5e);
+    --bdg-border: light-dark(#d8dee4, #3a4048);
+    --bdg-accent: light-dark(#0969da, #4493f8);
+    --bdg-danger: light-dark(#cf222e, #f85149);
+    --bdg-radius: 8px;
+    --bdg-cell-pad: 8px 10px;
+
+    color-scheme: light dark;
+    font: var(--bdg-font);
+    color: var(--bdg-color);
+    background: var(--bdg-bg);
+    border-radius: var(--bdg-radius);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-sizing: border-box;
+}
+
+.bdg *, .bdg *::before, .bdg *::after { box-sizing: border-box; }
+
+.bdg.bdg-bordered { border: 1px solid var(--bdg-border); }
+
+/* ---------------------------------------------------------- Toolbar */
+.bdg-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border-bottom: 1px solid var(--bdg-border);
+    flex-wrap: wrap;
+}
+.bdg-toolbar-start, .bdg-toolbar-end { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+.bdg-column-chooser {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 10px;
+    border-bottom: 1px solid var(--bdg-border);
+    background: var(--bdg-header-bg);
+}
+.bdg-chooser-item { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+
+/* ---------------------------------------------------------- Viewport */
+.bdg-viewport { overflow: auto; position: relative; }
+
+.bdg-table { display: block; min-width: 100%; }
+
+/* ---------------------------------------------------------- Rows */
+.bdg-row {
+    display: grid;
+    grid-template-columns: var(--bdg-template);
+    align-items: stretch;
+    border-bottom: 1px solid var(--bdg-border);
+}
+
+.bdg-header {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+}
+
+.bdg-header-row, .bdg-filter-row { background: var(--bdg-header-bg); }
+.bdg-filter-row { border-bottom: 1px solid var(--bdg-border); }
+
+.bdg-hcell {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: var(--bdg-cell-pad);
+    font-weight: 600;
+    position: relative;
+    background: var(--bdg-header-bg);
+    border-right: 1px solid transparent;
+    user-select: none;
+    overflow: hidden;
+}
+
+.bdg-cell {
+    padding: var(--bdg-cell-pad);
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    background: var(--bdg-bg);
+}
+
+.bdg-bordered .bdg-cell, .bdg-bordered .bdg-hcell { border-right: 1px solid var(--bdg-border); }
+
+.bdg-center { justify-content: center; text-align: center; }
+.bdg-right { justify-content: flex-end; text-align: right; }
+
+/* Striping & hover */
+.bdg-striped .bdg-body .bdg-row:nth-child(even) .bdg-cell { background: light-dark(#fbfcfd, #20242a); }
+.bdg-hoverable .bdg-body .bdg-row:hover .bdg-cell { background: var(--bdg-row-hover); }
+
+.bdg-row.bdg-selected .bdg-cell { background: var(--bdg-row-selected); }
+.bdg-row.bdg-editing .bdg-cell { background: light-dark(#fff8e6, #2e2a17); }
+
+/* Sticky / frozen columns */
+.bdg-sticky { position: sticky; z-index: 2; }
+.bdg-header .bdg-sticky { z-index: 4; }
+.bdg-rtl .bdg-sticky { right: auto; }
+
+.bdg-cell-detail, .bdg-cell-select { justify-content: center; }
+
+/* ---------------------------------------------------------- Header sorting */
+.bdg-sortable .bdg-htext { cursor: pointer; }
+.bdg-htext { display: inline-flex; align-items: center; gap: 4px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bdg-sort-icon { font-size: 10px; color: var(--bdg-accent); }
+.bdg-sort-priority {
+    font-size: 9px;
+    background: var(--bdg-accent);
+    color: #fff;
+    border-radius: 8px;
+    padding: 0 4px;
+    line-height: 14px;
+}
+
+/* Resizer handle */
+.bdg-resizer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 7px;
+    height: 100%;
+    cursor: col-resize;
+    touch-action: none;
+}
+.bdg-rtl .bdg-resizer { right: auto; left: 0; }
+.bdg-resizer:hover { background: var(--bdg-accent); opacity: .5; }
+
+.bdg-resize-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    cursor: col-resize;
+    touch-action: none;
+}
+
+/* ---------------------------------------------------------- Group rows */
+.bdg-group-row { border-bottom: 1px solid var(--bdg-border); }
+.bdg-group-cell {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: var(--bdg-cell-pad);
+    background: light-dark(#eef2f6, #262b32);
+}
+.bdg-group-count { color: var(--bdg-muted); }
+.bdg-group-agg { color: var(--bdg-muted); font-size: 12px; }
+
+/* ---------------------------------------------------------- Detail rows */
+.bdg-detail-row { border-bottom: 1px solid var(--bdg-border); }
+.bdg-detail-content { padding: 12px 16px; background: light-dark(#fbfcfd, #1a1d22); }
+
+/* ---------------------------------------------------------- Footer */
+.bdg-footer { position: sticky; bottom: 0; z-index: 3; }
+.bdg-footer-row .bdg-cell {
+    background: var(--bdg-header-bg);
+    font-weight: 600;
+    border-top: 2px solid var(--bdg-border);
+}
+
+/* ---------------------------------------------------------- Empty / loading */
+.bdg-empty, .bdg-loading {
+    padding: 32px;
+    text-align: center;
+    color: var(--bdg-muted);
+}
+.bdg-spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid var(--bdg-muted);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: bdg-spin .7s linear infinite;
+    vertical-align: middle;
+}
+@keyframes bdg-spin { to { transform: rotate(360deg); } }
+
+/* ---------------------------------------------------------- Editors */
+.bdg-editor, .bdg-filter-input {
+    width: 100%;
+    padding: 4px 6px;
+    border: 1px solid var(--bdg-border);
+    border-radius: 4px;
+    background: var(--bdg-bg);
+    color: var(--bdg-color);
+    font: inherit;
+}
+.bdg-editor-check { width: auto; }
+.bdg-filter-input { font-weight: 400; }
+
+/* ---------------------------------------------------------- Buttons */
+.bdg-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 10px;
+    border: 1px solid var(--bdg-border);
+    border-radius: 6px;
+    background: var(--bdg-bg);
+    color: var(--bdg-color);
+    font: inherit;
+    cursor: pointer;
+    text-decoration: none;
+    line-height: 1.2;
+}
+.bdg-btn:hover:not(:disabled) { background: var(--bdg-row-hover); }
+.bdg-btn:disabled { opacity: .45; cursor: default; }
+.bdg-btn-primary { background: var(--bdg-accent); border-color: var(--bdg-accent); color: #fff; }
+.bdg-btn-danger { color: var(--bdg-danger); border-color: var(--bdg-danger); }
+.bdg-cell-command { gap: 6px; }
+
+.bdg-icon-btn {
+    background: none;
+    border: none;
+    color: var(--bdg-color);
+    cursor: pointer;
+    font-size: 13px;
+    padding: 2px 4px;
+    border-radius: 4px;
+}
+.bdg-icon-btn:hover { background: var(--bdg-row-hover); }
+.bdg-group-btn.bdg-active { color: var(--bdg-accent); }
+
+/* ---------------------------------------------------------- Pager */
+.bdg-pager {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border-top: 1px solid var(--bdg-border);
+    flex-wrap: wrap;
+}
+.bdg-pager-info { display: flex; align-items: center; gap: 10px; color: var(--bdg-muted); }
+.bdg-pager-buttons { display: flex; align-items: center; gap: 4px; }
+.bdg-pager-current { padding: 0 8px; }
+.bdg-page-size {
+    padding: 4px 6px;
+    border: 1px solid var(--bdg-border);
+    border-radius: 6px;
+    background: var(--bdg-bg);
+    color: var(--bdg-color);
+    font: inherit;
+}

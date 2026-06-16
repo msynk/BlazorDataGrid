@@ -1,0 +1,30 @@
+@page "/columns"
+
+<PageTitle>Resize / Reorder / Freeze</PageTitle>
+
+<h1>Column resizing, reordering &amp; freezing</h1>
+<p class="lead">Drag column edges to resize, drag headers to reorder, and pin columns in place.</p>
+
+<ul>
+    <li><strong>Resize</strong>: hover the right edge of a header and drag. Implemented with a pure-Blazor pointer overlay — no JavaScript.</li>
+    <li><strong>Reorder</strong>: drag a header onto another to swap order (native HTML drag-and-drop).</li>
+    <li><strong>Freeze</strong>: the ID and Name columns are frozen, staying visible while you scroll horizontally.</li>
+</ul>
+
+<div class="card">
+    <DataGrid TItem="Product" Items="_products" Height="430px"
+              Resizable="true" Reorderable="true">
+        <DataGridColumn TItem="Product" Field="Id" Title="ID" Width="80px" Align="ColumnAlign.Right" Frozen="true" />
+        <DataGridColumn TItem="Product" Field="Name" Width="220px" Frozen="true" />
+        <DataGridColumn TItem="Product" Field="Category" Width="160px" />
+        <DataGridColumn TItem="Product" Field="Supplier" Width="200px" />
+        <DataGridColumn TItem="Product" Field="Price" Width="160px" Format="C2" Align="ColumnAlign.Right" />
+        <DataGridColumn TItem="Product" Field="Stock" Width="140px" Align="ColumnAlign.Right" />
+        <DataGridColumn TItem="Product" Field="Rating" Width="140px" Format="N1" Align="ColumnAlign.Right" />
+        <DataGridColumn TItem="Product" Field="ReleaseDate" Title="Released" Width="160px" Format="yyyy-MM-dd" />
+    </DataGrid>
+</div>
+
+@code {
+    private List<Product> _products = SampleData.Generate(40);
+}

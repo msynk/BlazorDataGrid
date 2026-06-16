@@ -1,0 +1,323 @@
+@typeparam TItem
+@using BlazorDataGrid.Models
+@using BlazorDataGrid.Infrastructure
+
+@* Collect column definitions (these render no visible markup) *@
+<CascadingValue Value="this" IsFixed="true">
+    @ChildContent
+</CascadingValue>
+
+<div class="@RootClasses()" style="@Style" dir="@(Direction == GridDirection.Rtl ? "rtl" : "ltr")">
+
+    @* ---------------------------------------------------------- Toolbar *@
+    @if (ShowToolbar || ToolbarTemplate is not null || ShowColumnChooser || ShowCsvExport || (Editable && NewItemFactory is not null))
+    {
+        <div class="bdg-toolbar">
+            <div class="bdg-toolbar-start">
+                @ToolbarTemplate
+                @if (Editable && NewItemFactory is not null)
+                {
+                    <button type="button" class="bdg-btn bdg-btn-primary" @onclick="AddNewRowAsync">+ Add</button>
+                }
+            </div>
+            <div class="bdg-toolbar-end">
+                @if (_filters.Count > 0)
+                {
+                    <button type="button" class="bdg-btn" @onclick="ClearFiltersAsync">Clear filters</button>
+                }
+                @if (ShowCsvExport)
+                {
+                    <a class="bdg-btn" download="export.csv"
+                       href="data:text/csv;charset=utf-8,@Uri.EscapeDataString(ToCsv())">Export CSV</a>
+                }
+                @if (ShowColumnChooser)
+                {
+                    <button type="button" class="bdg-btn" @onclick="ToggleColumnChooser">Columns ▾</button>
+                }
+            </div>
+        </div>
+    }
+
+    @if (_showColumnChooserPanel)
+    {
+        <div class="bdg-column-chooser">
+            @foreach (var col in AllColumns)
+            {
+                <label class="bdg-chooser-item">
+                    <input type="checkbox" checked="@col.Visible"
+                           @onchange="e => SetColumnVisibilityAsync(col, (bool)e.Value!)" />
+                    @col.DisplayTitle
+                </label>
+            }
+        </div>
+    }
+
+    @if (Pageable && (PagerPosition is PagerPosition.Top or PagerPosition.TopAndBottom))
+    {
+        @RenderPager
+    }
+
+    @* ------------------------------------------------------- Grid viewport *@
+    <div class="bdg-viewport" style="@ViewportStyle">
+        <div class="bdg-table" role="grid" aria-rowcount="@TotalCount" style="--bdg-template:@BuildGridTemplate();">
+
+            @if (ShowHeader)
+            {
+                <div class="bdg-header" role="rowgroup">
+                    <div class="bdg-row bdg-header-row" role="row" style="grid-template-columns:var(--bdg-template);">
+                        @if (HasDetailColumn)
+                        {
+                            <div class="bdg-hcell bdg-sticky" style="left:0;" role="columnheader"></div>
+                        }
+                        @if (HasSelectColumn)
+                        {
+                            <div class="bdg-hcell bdg-sticky bdg-center" style="@SelectStickyStyle" role="columnheader">
+                                <input type="checkbox" checked="@AllPageSelected"
+                                       @onchange="e => ToggleSelectAllAsync((bool)e.Value!)" aria-label="Select all" />
+                            </div>
+                        }
+
+                        @foreach (var column in VisibleColumns)
+                        {
+                            var sort = GetSort(column);
+                            var hcellClass = HeaderCellClass(column);
+                            var draggable = ColumnReorderable(column) ? "true" : "false";
+                            <div class="@hcellClass"
+                                 role="columnheader"
+                                 style="@FrozenStyle(column)"
+                                 draggable="@draggable"
+                                 @ondragstart="() => StartColumnDrag(column)"
+                                 @ondragover:preventDefault="true"
+                                 @ondrop="() => DropColumn(column)">
+
+                                <span class="bdg-htext" @onclick="e => OnHeaderClick(column, e)">
+                                    @if (column.HeaderTemplate is not null)
+                                    {
+                                        @column.HeaderTemplate
+                                    }
+                                    else
+                                    {
+                                        @column.DisplayTitle
+                                    }
+                                    @if (sort is not null)
+                                    {
+                                        <span class="bdg-sort-icon">@(sort.Direction == SortDirection.Ascending ? "▲" : "▼")</span>
+                                        @if (MultiSort && _sorts.Count > 1)
+                                        {
+                                            <span class="bdg-sort-priority">@sort.Priority</span>
+                                        }
+                                    }
+                                </span>
+
+                                @if (ColumnGroupable(column))
+                                {
+                                    var groupClass = IsGrouped(column) ? "bdg-icon-btn bdg-group-btn bdg-active" : "bdg-icon-btn bdg-group-btn";
+                                    <button type="button" class="@groupClass"
+                                            title="@($"Group by {column.DisplayTitle}")"
+                                            @onclick="() => ToggleGroupAsync(column)" @onclick:stopPropagation="true">⊞</button>
+                                }
+
+                                @if (ColumnResizable(column))
+                                {
+                                    <span class="bdg-resizer"
+                                          @onpointerdown="e => StartResize(column, e.ClientX)"
+                                          @onpointerdown:stopPropagation="true"></span>
+                                }
+                            </div>
+                        }
+
+                        @if (HasCommandColumn)
+                        {
+                            <div class="bdg-hcell" role="columnheader">Actions</div>
+                        }
+                    </div>
+
+                    @if (Filterable || VisibleColumns.Any(ColumnFilterable))
+                    {
+                        <div class="bdg-row bdg-filter-row" role="row" style="grid-template-columns:var(--bdg-template);">
+                            @if (HasDetailColumn)
+                            {
+                                <div class="bdg-hcell bdg-sticky" style="left:0;"></div>
+                            }
+                            @if (HasSelectColumn)
+                            {
+                                <div class="bdg-hcell bdg-sticky" style="@SelectStickyStyle"></div>
+                            }
+                            @foreach (var column in VisibleColumns)
+                            {
+                                <div class="bdg-hcell@(column.Frozen ? " bdg-sticky" : "")" style="@FrozenStyle(column)">
+                                    @if (ColumnFilterable(column))
+                                    {
+                                        <input class="bdg-filter-input" placeholder="Filter…"
+                                               value="@(GetFilter(column)?.Value)"
+                                               @onchange="e => SetFilterAsync(column, FilterOperator.Contains, e.Value)" />
+                                    }
+                                </div>
+                            }
+                            @if (HasCommandColumn)
+                            {
+                                <div class="bdg-hcell"></div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+
+            <div class="bdg-body" role="rowgroup">
+                @if (PendingNewItem is not null)
+                {
+                    <DataGridRow TItem="TItem" Grid="this" Item="PendingNewItem" />
+                }
+                @if (Loading)
+                {
+                    <div class="bdg-loading"><span class="bdg-spinner"></span> Loading…</div>
+                }
+                else if (TotalCount == 0 && PendingNewItem is null)
+                {
+                    <div class="bdg-empty">
+                        @if (EmptyTemplate is not null)
+                        {
+                            @EmptyTemplate
+                        }
+                        else
+                        {
+                            <span>No records to display.</span>
+                        }
+                    </div>
+                }
+                else if (_viewGroups is not null)
+                {
+                    @foreach (var group in _viewGroups)
+                    {
+                        var groupCol = _columnsById.GetValueOrDefault(group.ColumnId);
+                        <div class="bdg-group-row" role="row">
+                            <div class="bdg-group-cell">
+                                <button type="button" class="bdg-icon-btn" @onclick="() => ToggleGroup(group)">
+                                    @(IsGroupCollapsed(group) ? "▸" : "▾")
+                                </button>
+                                <strong>@(groupCol?.DisplayTitle): @group.KeyText</strong>
+                                <span class="bdg-group-count">(@group.Items.Count)</span>
+                                @foreach (var agg in group.Aggregates)
+                                {
+                                    <span class="bdg-group-agg">@(_columnsById.GetValueOrDefault(agg.ColumnId)?.DisplayTitle): @AggregateLabel(agg)</span>
+                                }
+                            </div>
+                        </div>
+                        @if (!IsGroupCollapsed(group))
+                        {
+                            @foreach (var item in group.Items)
+                            {
+                                <DataGridRow TItem="TItem" Grid="this" Item="item" @key="item" />
+                            }
+                        }
+                    }
+                }
+                else if (UseVirtualization)
+                {
+                    <Virtualize Items="VirtualRows" ItemSize="RowHeight" Context="item" TItem="TItem">
+                        <DataGridRow TItem="TItem" Grid="this" Item="item" />
+                    </Virtualize>
+                }
+                else
+                {
+                    @foreach (var item in _pageItems)
+                    {
+                        <DataGridRow TItem="TItem" Grid="this" Item="item" @key="item" />
+                    }
+                }
+            </div>
+
+            @if (ShowFooter && _footerAggregates.Count > 0)
+            {
+                <div class="bdg-footer" role="rowgroup">
+                    <div class="bdg-row bdg-footer-row" role="row" style="grid-template-columns:var(--bdg-template);">
+                        @if (HasDetailColumn)
+                        {
+                            <div class="bdg-cell"></div>
+                        }
+                        @if (HasSelectColumn)
+                        {
+                            <div class="bdg-cell"></div>
+                        }
+                        @foreach (var column in VisibleColumns)
+                        {
+                            var agg = _footerAggregates.FirstOrDefault(a => a.ColumnId == column.Id);
+                            <div class="bdg-cell @AlignClass(column.Align)">
+                                @if (column.FooterTemplate is not null && agg is not null)
+                                {
+                                    @column.FooterTemplate(agg)
+                                }
+                                else if (agg is not null)
+                                {
+                                    @AggregateLabel(agg)
+                                }
+                            </div>
+                        }
+                        @if (HasCommandColumn)
+                        {
+                            <div class="bdg-cell"></div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    @if (Pageable && (PagerPosition is PagerPosition.Bottom or PagerPosition.TopAndBottom))
+    {
+        @RenderPager
+    }
+</div>
+
+@* --------------------------------------------- Resize tracking overlay (zero-JS) *@
+@if (IsResizing)
+{
+    <div class="bdg-resize-overlay"
+         @onpointermove="e => OnResizeMove(e.ClientX)"
+         @onpointerup="EndResize"
+         @onpointerleave="EndResize"></div>
+}
+
+@code {
+    private bool UseVirtualization => Virtualize && _viewGroups is null && !IsServerMode;
+    private ICollection<TItem> VirtualRows => _view as ICollection<TItem> ?? _view.ToList();
+
+    private string ViewportStyle
+    {
+        get
+        {
+            var s = "";
+            if (!string.IsNullOrEmpty(Height)) s += $"height:{Height};";
+            return s;
+        }
+    }
+
+    private async Task OnHeaderClick(DataGridColumn<TItem> column, MouseEventArgs e)
+    {
+        if (!ColumnSortable(column)) return;
+        await ToggleSortAsync(column, MultiSort && (e.CtrlKey || e.MetaKey));
+    }
+
+    private RenderFragment RenderPager => @<div class="bdg-pager">
+        <div class="bdg-pager-info">
+            @{
+                var from = TotalCount == 0 ? 0 : (CurrentPage - 1) * _effectivePageSize + 1;
+                var to = Math.Min(CurrentPage * _effectivePageSize, TotalCount);
+            }
+            <span>@from–@to of @TotalCount</span>
+            <select class="bdg-page-size" @onchange="e => SetPageSizeAsync(int.Parse((string)e.Value!))">
+                @foreach (var size in PageSizeOptions)
+                {
+                    <option value="@size" selected="@(size == PageSize)">@size / page</option>
+                }
+            </select>
+        </div>
+        <div class="bdg-pager-buttons">
+            <button type="button" class="bdg-btn" disabled="@(CurrentPage <= 1)" @onclick="() => GoToPageAsync(1)">«</button>
+            <button type="button" class="bdg-btn" disabled="@(CurrentPage <= 1)" @onclick="() => GoToPageAsync(CurrentPage - 1)">‹</button>
+            <span class="bdg-pager-current">Page @CurrentPage of @TotalPages</span>
+            <button type="button" class="bdg-btn" disabled="@(CurrentPage >= TotalPages)" @onclick="() => GoToPageAsync(CurrentPage + 1)">›</button>
+            <button type="button" class="bdg-btn" disabled="@(CurrentPage >= TotalPages)" @onclick="() => GoToPageAsync(TotalPages)">»</button>
+        </div>
+    </div>;
+}

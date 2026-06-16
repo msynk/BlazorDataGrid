@@ -1,0 +1,61 @@
+@typeparam TItem
+@using BlazorDataGrid.Models
+
+@switch (Column.EffectiveDataType)
+{
+    case ColumnDataType.Boolean:
+        <input type="checkbox" class="bdg-editor bdg-editor-check"
+               checked="@(GetBool())"
+               @onchange="e => Set(e.Value)" />
+        break;
+
+    case ColumnDataType.Number:
+        <input type="number" class="bdg-editor" step="any"
+               value="@(GetString())"
+               @onchange="e => Set(e.Value)" />
+        break;
+
+    case ColumnDataType.Date:
+        <input type="date" class="bdg-editor"
+               value="@(GetDate())"
+               @onchange="e => Set(e.Value)" />
+        break;
+
+    case ColumnDataType.Enum:
+        <select class="bdg-editor" value="@(GetString())" @onchange="e => Set(e.Value)">
+            @foreach (var name in Enum.GetNames(Column.Accessor!.UnderlyingType))
+            {
+                <option value="@name" selected="@(name == GetString())">@name</option>
+            }
+        </select>
+        break;
+
+    default:
+        <input type="text" class="bdg-editor"
+               value="@(GetString())"
+               @onchange="e => Set(e.Value)" />
+        break;
+}
+
+@code {
+    [Parameter, EditorRequired] public DataGrid<TItem> Grid { get; set; } = default!;
+    [Parameter, EditorRequired] public DataGridColumn<TItem> Column { get; set; } = default!;
+    [Parameter, EditorRequired] public TItem Item { get; set; } = default!;
+
+    private object? Value => Column.GetValue(Item);
+    private string GetString() => Value?.ToString() ?? string.Empty;
+    private bool GetBool() => Value is bool b && b;
+
+    private string GetDate()
+    {
+        return Value switch
+        {
+            DateTime dt => dt.ToString("yyyy-MM-dd"),
+            DateOnly d => d.ToString("yyyy-MM-dd"),
+            DateTimeOffset dto => dto.ToString("yyyy-MM-dd"),
+            _ => string.Empty
+        };
+    }
+
+    private void Set(object? raw) => Grid.SetEditValue(Column, raw);
+}

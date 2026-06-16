@@ -1,0 +1,30 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <ResourcePreloader />
+    <link rel="stylesheet" href="@Assets["app.css"]" />
+    <link rel="stylesheet" href="@Assets["BlazorDataGrid.Demo.styles.css"]" />
+    <link rel="stylesheet" href="_content/BlazorDataGrid/blazordatagrid.css" />
+    <ImportMap />
+    <HeadOutlet @rendermode="RenderModeNoPrerender" />
+</head>
+
+<body>
+    <Routes @rendermode="RenderModeNoPrerender" />
+    <ReconnectModal />
+    <script src="@Assets["_framework/blazor.web.js"]"></script>
+</body>
+
+</html>
+
+@code {
+    // Interactive Server with prerendering disabled. Disabling prerender is important here
+    // because the demo renders very large virtualized grids; prerendering would attempt to
+    // render the entire dataset server-side before the client connects.
+    private static readonly IComponentRenderMode RenderModeNoPrerender =
+        new InteractiveServerRenderMode(prerender: false);
+}
