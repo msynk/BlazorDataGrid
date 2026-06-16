@@ -1,0 +1,48 @@
+@page "/tree-view"
+
+<PageTitle>Tree View</PageTitle>
+
+<h1>Tree view (hierarchical rows)</h1>
+<p class="lead">Render self-referential, parent/child data as an expandable tree grid.</p>
+
+<p>
+    Set the <code>ChildrenSelector</code> parameter to a function that returns each item's direct
+    children. The grid then treats <code>Items</code> as the root nodes and renders expand/collapse
+    toggles with indentation in the first column. Sorting applies within each set of siblings.
+</p>
+
+<div class="toolbar-row">
+    <button class="btn" @onclick="ExpandAll">Expand all</button>
+    <button class="btn" @onclick="CollapseAll">Collapse all</button>
+</div>
+
+<div class="card">
+    <BlazorDataGrid TItem="FileNode" Items="_roots" Height="460px" Sortable="true"
+                    ChildrenSelector="n => n.Children" TreeInitiallyExpanded="true"
+                    KeyField="n => n.Id" @ref="_grid">
+        <BlazorDataGridColumn TItem="FileNode" Field="Name" Title="Name" Width="320px" />
+        <BlazorDataGridColumn TItem="FileNode" Field="Kind" Title="Type" Width="120px" />
+        <BlazorDataGridColumn TItem="FileNode" Field="Size" Title="Size (bytes)" Format="N0"
+                              Align="BlazorDataGridColumnAlign.Right" />
+        <BlazorDataGridColumn TItem="FileNode" Field="Modified" Format="yyyy-MM-dd"
+                              Align="BlazorDataGridColumnAlign.Right" />
+    </BlazorDataGrid>
+</div>
+
+<h2>Markup</h2>
+<div class="card">
+<pre><code>&lt;BlazorDataGrid TItem="FileNode" Items="roots"
+                ChildrenSelector="n =&gt; n.Children"
+                KeyField="n =&gt; n.Id"&gt;
+    &lt;BlazorDataGridColumn TItem="FileNode" Field="Name" /&gt;
+    &lt;BlazorDataGridColumn TItem="FileNode" Field="Size" Format="N0" /&gt;
+&lt;/BlazorDataGrid&gt;</code></pre>
+</div>
+
+@code {
+    private List<FileNode> _roots = FileSystemData.Build();
+    private BlazorDataGrid<FileNode>? _grid;
+
+    private async Task ExpandAll() { if (_grid is not null) await _grid.ExpandAllAsync(); }
+    private async Task CollapseAll() { if (_grid is not null) await _grid.CollapseAllAsync(); }
+}

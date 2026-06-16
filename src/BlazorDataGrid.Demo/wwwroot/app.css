@@ -118,6 +118,42 @@ main { flex: 1; min-width: 0; }
 
 .hint { color: var(--muted); font-size: 13px; margin: 6px 0 0; }
 
+.muted { color: var(--muted); }
+
+.keys {
+    margin: 8px 0 4px;
+    padding-left: 18px;
+    line-height: 1.9;
+    color: var(--muted);
+    font-size: 14px;
+}
+.keys li { margin: 0; }
+
+kbd {
+    display: inline-block;
+    padding: 1px 6px;
+    border: 1px solid var(--border);
+    border-bottom-width: 2px;
+    border-radius: 5px;
+    background: light-dark(#f6f8fa, #22262c);
+    color: var(--text);
+    font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+pre {
+    margin: 0;
+    overflow: auto;
+}
+pre code {
+    font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: var(--text);
+}
+
+.empty-state { text-align: center; padding: 24px 16px; }
+.empty-state h3 { margin: 6px 0 4px; font-size: 16px; }
+.empty-state p { margin: 0 0 12px; }
+.empty-icon { font-size: 40px; line-height: 1; }
+
 #blazor-error-ui {
     display: none;
     position: fixed;

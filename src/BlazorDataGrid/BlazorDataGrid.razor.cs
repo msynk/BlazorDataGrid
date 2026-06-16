@@ -27,6 +27,17 @@ public partial class BlazorDataGrid<TItem> : ComponentBase
     /// <summary>Optional key selector used for selection/edit identity. Defaults to reference equality.</summary>
     [Parameter] public Func<TItem, object>? KeyField { get; set; }
 
+    /// <summary>
+    /// Optional child selector that turns the grid into a hierarchical <b>tree grid</b>.
+    /// Return the direct children of an item, or <c>null</c>/empty for a leaf. When set,
+    /// the bound <see cref="Items"/> are treated as the root nodes and rows render with
+    /// expand/collapse toggles and indentation. Mirrors react-data-grid's Tree View.
+    /// </summary>
+    [Parameter] public Func<TItem, IEnumerable<TItem>?>? ChildrenSelector { get; set; }
+
+    /// <summary>When tree mode is active, controls whether nodes start expanded. Default: collapsed.</summary>
+    [Parameter] public bool TreeInitiallyExpanded { get; set; }
+
     // ------------------------------------------------------------ Appearance
     [Parameter] public string? Class { get; set; }
     [Parameter] public string? Style { get; set; }
@@ -49,6 +60,15 @@ public partial class BlazorDataGrid<TItem> : ComponentBase
     [Parameter] public bool ShowToolbar { get; set; }
     [Parameter] public bool ShowColumnChooser { get; set; }
     [Parameter] public bool ShowCsvExport { get; set; }
+
+    /// <summary>
+    /// Enables keyboard cell navigation. Cells become focusable via a roving tabindex and
+    /// respond to arrow keys, <kbd>Home</kbd>/<kbd>End</kbd>, <kbd>PageUp</kbd>/<kbd>PageDown</kbd>
+    /// (and <kbd>Ctrl</kbd> variants). <kbd>Enter</kbd>/<kbd>F2</kbd> begins editing an editable
+    /// cell and <kbd>Esc</kbd> cancels. Mirrors react-data-grid's Cell Navigation. No JavaScript
+    /// is used — focus is driven by Blazor's built-in <c>FocusAsync</c>.
+    /// </summary>
+    [Parameter] public bool CellNavigation { get; set; }
 
     /// <summary>
     /// Enables drag-and-drop row reordering using native HTML drag-and-drop (no JS interop).
@@ -125,6 +145,17 @@ public partial class BlazorDataGrid<TItem> : ComponentBase
     private readonly HashSet<object> _expandedDetails = new();
     private readonly HashSet<object> _collapsedGroups = new();
 
+    // tree mode
+    private readonly HashSet<object> _expandedTree = new();
+    private readonly Dictionary<object, (int Level, bool HasChildren)> _treeMeta = new();
+    private List<TItem>? _treeRows;
+    private bool _treeInitialized;
+
+    // cell navigation
+    private TItem? _focusedRow;
+    private int _focusedCol;
+    private bool _focusPending;
+
     private IReadOnlyList<TItem> _view = Array.Empty<TItem>();      // filtered + sorted (full)
     private IReadOnlyList<TItem> _pageItems = Array.Empty<TItem>(); // current page slice
     private List<BlazorDataGridGroup<TItem>>? _viewGroups;
@@ -160,6 +191,7 @@ public partial class BlazorDataGrid<TItem> : ComponentBase
     internal IReadOnlyList<BlazorDataGridColumn<TItem>> VisibleColumns => _columns.Where(c => c.Visible).ToList();
     internal IReadOnlyList<BlazorDataGridSortDescriptor> Sorts => _sorts;
     internal bool IsServerMode => OnRead is not null;
+    internal bool IsTreeMode => ChildrenSelector is not null;
     internal bool IsEditing(TItem item) => _editItem is not null && KeyEquals(_editItem, item);
     internal bool IsRowSelected(TItem item) => _selected.Contains(item);
     internal int TotalCount => IsServerMode ? _totalCount : _view.Count;
@@ -227,6 +259,13 @@ public partial class BlazorDataGrid<TItem> : ComponentBase
     private void ProcessClientData()
     {
         var source = Items ?? Enumerable.Empty<TItem>();
+
+        if (IsTreeMode)
+        {
+            ProcessTreeData(source);
+            return;
+        }
+
         var filtered = BlazorDataGridDataProcessor.Filter(source, _filters, _columnsById);
         _view = BlazorDataGridDataProcessor.Sort(filtered, _sorts, _columnsById);
         _footerAggregates = BlazorDataGridDataProcessor.Aggregate(_view, _columns);
@@ -245,6 +284,87 @@ public partial class BlazorDataGrid<TItem> : ComponentBase
                 ? _view.Skip((_currentPage - 1) * _effectivePageSize).Take(_effectivePageSize).ToList()
                 : _view;
         }
+    }
+
+    /// <summary>
+    /// Flattens the hierarchical source into the list of currently-visible rows, honouring
+    /// per-sibling sorting and expand/collapse state. Paging and grouping do not apply in tree mode.
+    /// </summary>
+    private void ProcessTreeData(IEnumerable<TItem> roots)
+    {
+        if (!_treeInitialized && TreeInitiallyExpanded)
+        {
+            ExpandTreeRecursive(roots);
+            _treeInitialized = true;
+        }
+
+        var flat = new List<TItem>();
+        _treeMeta.Clear();
+        Walk(roots, 0);
+
+        _treeRows = flat;
+        _view = flat;
+        _pageItems = flat;
+        _viewGroups = null;
+        _footerAggregates = BlazorDataGridDataProcessor.Aggregate(flat, _columns);
+
+        void Walk(IEnumerable<TItem> siblings, int level)
+        {
+            var sorted = _sorts.Count > 0
+                ? BlazorDataGridDataProcessor.Sort(siblings.ToList(), _sorts, _columnsById)
+                : siblings.ToList();
+            foreach (var item in sorted)
+            {
+                var children = ChildrenSelector!(item);
+                var hasChildren = children is not null && children.Any();
+                _treeMeta[GetKey(item)] = (level, hasChildren);
+                flat.Add(item);
+                if (hasChildren && IsTreeExpanded(item))
+                    Walk(children!, level + 1);
+            }
+        }
+    }
+
+    private void ExpandTreeRecursive(IEnumerable<TItem> siblings)
+    {
+        foreach (var item in siblings)
+        {
+            var children = ChildrenSelector!(item);
+            if (children is not null && children.Any())
+            {
+                _expandedTree.Add(GetKey(item));
+                ExpandTreeRecursive(children);
+            }
+        }
+    }
+
+    // ------------------------------------------------------------- Tree view
+    internal int TreeLevel(TItem item) => _treeMeta.TryGetValue(GetKey(item), out var m) ? m.Level : 0;
+    internal bool TreeHasChildren(TItem item) => _treeMeta.TryGetValue(GetKey(item), out var m) && m.HasChildren;
+    internal bool IsTreeExpanded(TItem item) => _expandedTree.Contains(GetKey(item));
+
+    internal async Task ToggleTreeNodeAsync(TItem item)
+    {
+        var key = GetKey(item);
+        if (!_expandedTree.Add(key)) _expandedTree.Remove(key);
+        await RefreshAsync();
+    }
+
+    /// <summary>Expands every node in the tree. No-op outside tree mode.</summary>
+    public async Task ExpandAllAsync()
+    {
+        if (!IsTreeMode) return;
+        _expandedTree.Clear();
+        ExpandTreeRecursive(Items ?? Enumerable.Empty<TItem>());
+        await RefreshAsync();
+    }
+
+    /// <summary>Collapses every node in the tree. No-op outside tree mode.</summary>
+    public async Task CollapseAllAsync()
+    {
+        if (!IsTreeMode) return;
+        _expandedTree.Clear();
+        await RefreshAsync();
     }
 
     private async Task LoadServerDataAsync()
@@ -653,6 +773,94 @@ public partial class BlazorDataGrid<TItem> : ComponentBase
 
     private BlazorDataGridCellEventArgs<TItem> MakeCellArgs(BlazorDataGridColumn<TItem> column, TItem item, MouseEventArgs e)
         => new() { Item = item, Column = column, Value = column.GetValue(item), Mouse = e };
+
+    // ------------------------------------------------- Keyboard cell navigation
+    /// <summary>The flat, ordered list of rows the keyboard navigation moves across.</summary>
+    internal IReadOnlyList<TItem> NavigableRows => _pageItems;
+
+    internal bool IsCellFocused(TItem item, int colIndex)
+        => _focusedRow is not null && KeyEquals(_focusedRow, item) && _focusedCol == colIndex;
+
+    /// <summary>Roving tabindex: only one cell is in the tab order at a time.</summary>
+    internal int CellTabIndex(TItem item, int colIndex)
+    {
+        if (_focusedRow is not null)
+            return IsCellFocused(item, colIndex) ? 0 : -1;
+        var rows = NavigableRows;
+        return rows.Count > 0 && KeyEquals(rows[0], item) && colIndex == 0 ? 0 : -1;
+    }
+
+    /// <summary>Records the focused cell when the user clicks/tabs into it (no re-focus needed).</summary>
+    internal void SetFocusedCell(TItem item, int colIndex)
+    {
+        if (IsCellFocused(item, colIndex)) return;
+        _focusedRow = item;
+        _focusedCol = colIndex;
+        StateHasChanged();
+    }
+
+    internal bool ShouldFocusCell(TItem item, int colIndex) => _focusPending && IsCellFocused(item, colIndex);
+    internal void ClearFocusPending() => _focusPending = false;
+
+    /// <summary>Requests that the currently focused cell regain DOM focus on the next render
+    /// (e.g. after leaving inline edit mode via the keyboard).</summary>
+    internal void RefocusFocusedCell()
+    {
+        if (_focusedRow is null) return;
+        _focusPending = true;
+        StateHasChanged();
+    }
+
+    internal async Task HandleCellKeyDownAsync(TItem item, int colIndex, KeyboardEventArgs e)
+    {
+        var rows = NavigableRows;
+        if (rows.Count == 0) return;
+        var colCount = VisibleColumns.Count;
+        if (colCount == 0) return;
+
+        var rowIdx = IndexOfRow(rows, item);
+        if (rowIdx < 0) rowIdx = 0;
+
+        int row = rowIdx, col = colIndex;
+        var rtl = Direction == BlazorDataGridDirection.Rtl;
+        var handled = true;
+
+        switch (e.Key)
+        {
+            case "ArrowRight": col += rtl ? -1 : 1; break;
+            case "ArrowLeft": col += rtl ? 1 : -1; break;
+            case "ArrowDown": row += 1; break;
+            case "ArrowUp": row -= 1; break;
+            case "Home": if (e.CtrlKey) { row = 0; col = 0; } else col = 0; break;
+            case "End": if (e.CtrlKey) { row = rows.Count - 1; col = colCount - 1; } else col = colCount - 1; break;
+            case "PageDown": row += 10; break;
+            case "PageUp": row -= 10; break;
+            case "Enter":
+            case "F2":
+                var ec = VisibleColumns[Math.Clamp(col, 0, colCount - 1)];
+                if (ColumnEditable(ec)) BeginEdit(item);
+                return;
+            case "Escape":
+                if (_editItem is not null) await CancelEditAsync();
+                return;
+            default: handled = false; break;
+        }
+        if (!handled) return;
+
+        row = Math.Clamp(row, 0, rows.Count - 1);
+        col = Math.Clamp(col, 0, colCount - 1);
+        _focusedRow = rows[row];
+        _focusedCol = col;
+        _focusPending = true;
+        StateHasChanged();
+    }
+
+    private int IndexOfRow(IReadOnlyList<TItem> rows, TItem item)
+    {
+        for (int i = 0; i < rows.Count; i++)
+            if (KeyEquals(rows[i], item)) return i;
+        return -1;
+    }
 
     // ----------------------------------------------------- Column spanning
     /// <summary>Resolves the effective column span for a data cell (clamped to remaining columns).</summary>

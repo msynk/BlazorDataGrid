@@ -12,7 +12,7 @@
     case BlazorDataGridColumnDataType.Number:
         <input type="number" class="bdg-editor" step="any"
                value="@(GetString())"
-               @onchange="e => Set(e.Value)" />
+               @oninput="e => Set(e.Value)" />
         break;
 
     case BlazorDataGridColumnDataType.Date:
@@ -33,7 +33,7 @@
     default:
         <input type="text" class="bdg-editor"
                value="@(GetString())"
-               @onchange="e => Set(e.Value)" />
+               @oninput="e => Set(e.Value)" />
         break;
 }
 

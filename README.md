@@ -27,10 +27,12 @@ The component takes its feature inspiration from the leading grids on the web
 | Selection | Single / multiple, select-all header checkbox, per-row selection disabling, two-way binding |
 | Editing | Add / edit / save / cancel / delete, type-aware editors, `EditTemplate` |
 | Grouping | Collapsible **multi-level** row groups with per-group aggregates |
+| Tree | **Hierarchical tree-grid** via `ChildrenSelector`: expand/collapse, indentation, expand/collapse-all |
 | Aggregates | Sum, Average, Count, Min, Max footer rows |
 | Columns | Resize (min/max width), reorder, freeze/pin, **header groups**, **cell spanning**, show/hide chooser, alignment, formatting |
 | Rows | Fixed or per-row dynamic heights, **drag-and-drop reordering** |
 | Events | Row click + **cell click / double-click / context-menu** callbacks |
+| Keyboard | **Cell navigation** with roving tabindex: arrows, `Home`/`End`, `Ctrl`+`Home`/`End`, `PageUp`/`PageDown`, `Enter`/`F2` to edit, `Esc` to cancel |
 | Templates | Cell, header, editor, footer and expandable detail-row templates |
 | Theming | CSS variable tokens, automatic light/dark, RTL support |
 | Export | One-click CSV of the current view |

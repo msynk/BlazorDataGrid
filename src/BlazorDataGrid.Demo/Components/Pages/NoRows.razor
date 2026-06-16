@@ -1,0 +1,52 @@
+@page "/no-rows"
+
+<PageTitle>No Rows</PageTitle>
+
+<h1>Empty state</h1>
+<p class="lead">Show a friendly placeholder when there is nothing to display.</p>
+
+<p>
+    When the bound data is empty the grid renders its empty state. Supply an <code>EmptyTemplate</code>
+    to fully customize it, or rely on the built-in "No records to display" message.
+</p>
+
+<div class="toolbar-row">
+    <button class="btn" @onclick="() => _hasData = false">Clear data</button>
+    <button class="btn" @onclick="() => _hasData = true">Load data</button>
+</div>
+
+<h2>Custom empty template</h2>
+<div class="card">
+    <BlazorDataGrid TItem="Product" Items="Current" Height="320px" Sortable="true">
+        <EmptyTemplate>
+            <div class="empty-state">
+                <div class="empty-icon">📭</div>
+                <h3>Nothing here yet</h3>
+                <p class="muted">Try loading the sample data or adjusting your filters.</p>
+                <button class="btn" @onclick="() => _hasData = true">Load sample data</button>
+            </div>
+        </EmptyTemplate>
+        <ChildContent>
+            <BlazorDataGridColumn TItem="Product" Field="Id" Title="ID" Width="70px" Align="BlazorDataGridColumnAlign.Right" />
+            <BlazorDataGridColumn TItem="Product" Field="Name" Width="240px" />
+            <BlazorDataGridColumn TItem="Product" Field="Category" />
+            <BlazorDataGridColumn TItem="Product" Field="Price" Format="C2" Align="BlazorDataGridColumnAlign.Right" />
+        </ChildContent>
+    </BlazorDataGrid>
+</div>
+
+<h2>Default empty message</h2>
+<div class="card">
+    <BlazorDataGrid TItem="Product" Items="_empty" Height="220px">
+        <BlazorDataGridColumn TItem="Product" Field="Id" Title="ID" Width="70px" />
+        <BlazorDataGridColumn TItem="Product" Field="Name" />
+    </BlazorDataGrid>
+</div>
+
+@code {
+    private List<Product> _data = SampleData.Generate(25);
+    private readonly List<Product> _empty = new();
+    private bool _hasData = false;
+
+    private List<Product> Current => _hasData ? _data : _empty;
+}

@@ -39,34 +39,15 @@
     {
         if (skip > 0) { skip--; continue; }
         var column = cols[ci];
+        var colIndex = ci;
         var span = Grid.ResolveColSpan(column, Item);
         if (span > 1) skip = span - 1;
         var cellStyle = Grid.FrozenStyle(column) + (span > 1 ? $"grid-column:span {span};" : "");
-        <div class="@CellClass(column)" role="gridcell" style="@cellStyle"
-             @onclick="e => OnCellClick(column, e)"
-             @ondblclick="e => Grid.HandleCellDoubleClickAsync(column, Item, e)"
-             @oncontextmenu="e => Grid.HandleCellContextMenuAsync(column, Item, e)"
-             @oncontextmenu:preventDefault="Grid.OnCellContextMenu.HasDelegate">
-            @if (Editing && Grid.ColumnEditable(column))
-            {
-                @if (column.EditTemplate is not null)
-                {
-                    @column.EditTemplate(Item)
-                }
-                else
-                {
-                    <BlazorDataGridCellEditor TItem="TItem" Grid="Grid" Column="column" Item="Item" />
-                }
-            }
-            else if (column.Template is not null)
-            {
-                @column.Template(Item)
-            }
-            else
-            {
-                @column.GetFormattedValue(Item)
-            }
-        </div>
+
+        <BlazorDataGridCell TItem="TItem" Grid="Grid" Item="Item" Column="column" ColIndex="colIndex"
+                            CssClass="@CellClass(column)" Style="@cellStyle">
+            @CellContent(column, colIndex)
+        </BlazorDataGridCell>
     }
 
     @if (Grid.HasCommandColumn)
@@ -102,6 +83,44 @@
     private bool Selected => Grid.IsRowSelected(Item);
     private bool Editing => Grid.IsEditing(Item);
 
+    private RenderFragment CellContent(BlazorDataGridColumn<TItem> column, int colIndex) => @<text>
+        @if (Grid.IsTreeMode && colIndex == 0)
+        {
+            <span class="bdg-tree-indent" style="width:@(Grid.TreeLevel(Item) * 18)px;"></span>
+            @if (Grid.TreeHasChildren(Item))
+            {
+                <button type="button" class="bdg-icon-btn bdg-tree-toggle"
+                        @onclick="() => Grid.ToggleTreeNodeAsync(Item)" @onclick:stopPropagation="true"
+                        aria-label="Toggle children">
+                    @(Grid.IsTreeExpanded(Item) ? "▾" : "▸")
+                </button>
+            }
+            else
+            {
+                <span class="bdg-tree-leaf"></span>
+            }
+        }
+        @if (Editing && Grid.ColumnEditable(column))
+        {
+            @if (column.EditTemplate is not null)
+            {
+                @column.EditTemplate(Item)
+            }
+            else
+            {
+                <BlazorDataGridCellEditor TItem="TItem" Grid="Grid" Column="column" Item="Item" />
+            }
+        }
+        else if (column.Template is not null)
+        {
+            @column.Template(Item)
+        }
+        else
+        {
+            @column.GetFormattedValue(Item)
+        }
+    </text>;
+
     private string RowClass
     {
         get
@@ -125,7 +144,4 @@
     }
 
     private Task OnRowClick() => Grid.HandleRowClickAsync(Item);
-
-    private async Task OnCellClick(BlazorDataGridColumn<TItem> column, MouseEventArgs e)
-        => await Grid.HandleCellClickAsync(column, Item, e);
 }

@@ -1,0 +1,47 @@
+@page "/variable-row-height"
+
+<PageTitle>Variable Row Height</PageTitle>
+
+<h1>Variable row height</h1>
+<p class="lead">Give each row its own height with a functional <code>RowHeightSelector</code>.</p>
+
+<p>
+    Pass <code>RowHeightSelector</code> a function that returns the desired height (in pixels) for a
+    given row. Here premium products (price over $500) get a taller row so their extra content has
+    room to breathe. Mirrors react-data-grid's functional <code>rowHeight</code>.
+</p>
+
+<div class="card">
+    <BlazorDataGrid TItem="Product" Items="_products" Height="480px" Sortable="true"
+                    RowHeightSelector="RowHeight">
+        <BlazorDataGridColumn TItem="Product" Field="Id" Title="ID" Width="70px" Align="BlazorDataGridColumnAlign.Right" />
+        <BlazorDataGridColumn TItem="Product" Field="Name" Width="260px">
+            <Template Context="p">
+                <div>
+                    <div><strong>@p.Name</strong></div>
+                    @if (p.Price > 500)
+                    {
+                        <div class="muted">Premium · @p.Supplier · released @p.ReleaseDate.ToString("MMM yyyy")</div>
+                    }
+                </div>
+            </Template>
+        </BlazorDataGridColumn>
+        <BlazorDataGridColumn TItem="Product" Field="Category" />
+        <BlazorDataGridColumn TItem="Product" Field="Price" Format="C2" Align="BlazorDataGridColumnAlign.Right" />
+        <BlazorDataGridColumn TItem="Product" Field="Stock" Align="BlazorDataGridColumnAlign.Right" />
+    </BlazorDataGrid>
+</div>
+
+<h2>Markup</h2>
+<div class="card">
+<pre><code>&lt;BlazorDataGrid TItem="Product" Items="products"
+                RowHeightSelector="p =&gt; p.Price &gt; 500 ? 64 : 36"&gt;
+    ...
+&lt;/BlazorDataGrid&gt;</code></pre>
+</div>
+
+@code {
+    private List<Product> _products = SampleData.Generate(40);
+
+    private float RowHeight(Product p) => p.Price > 500 ? 64f : 36f;
+}
