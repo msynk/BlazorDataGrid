@@ -1,5 +1,3 @@
-using BlazorDataGrid.Infrastructure;
-using BlazorDataGrid.Models;
 using Microsoft.AspNetCore.Components;
 
 namespace BlazorDataGrid;

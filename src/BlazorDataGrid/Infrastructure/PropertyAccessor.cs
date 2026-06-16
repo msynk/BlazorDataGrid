@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using System.Linq.Expressions;
 using System.Reflection;
 
-namespace BlazorDataGrid.Infrastructure;
+namespace BlazorDataGrid;
 
 /// <summary>
 /// Builds and caches fast compiled delegates to read and write a property on

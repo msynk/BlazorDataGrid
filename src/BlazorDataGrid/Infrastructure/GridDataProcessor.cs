@@ -1,7 +1,6 @@
 using System.Globalization;
-using BlazorDataGrid.Models;
 
-namespace BlazorDataGrid.Infrastructure;
+namespace BlazorDataGrid;
 
 /// <summary>A materialized group of rows produced by grouping.</summary>
 public sealed class GridGroup<TItem>

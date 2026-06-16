@@ -1,6 +1,4 @@
 using System.Globalization;
-using BlazorDataGrid.Infrastructure;
-using BlazorDataGrid.Models;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web.Virtualization;
 
@@ -100,6 +98,12 @@ public partial class DataGrid<TItem> : ComponentBase
     private int _effectivePageSize;
     private bool _showColumnChooserPanel;
 
+    // Tracks external data inputs so we only (re)load when they actually change,
+    // rather than on every parent re-render (which would loop in server mode).
+    private bool _dataInitialized;
+    private IEnumerable<TItem>? _lastItems;
+    private int _lastPageSize;
+
     // editing
     private TItem? _editItem;
     private TItem? _pendingNew;
@@ -155,7 +159,17 @@ public partial class DataGrid<TItem> : ComponentBase
             foreach (var i in SelectedItems) _selected.Add(i);
         }
 
-        await RefreshAsync();
+        // Only (re)load data when an external input that affects it actually changes.
+        // Refreshing on every parameter set would cause an infinite loop in server mode:
+        // OnRead -> caller StateHasChanged -> parent re-render -> OnParametersSetAsync -> OnRead...
+        var inputsChanged = !ReferenceEquals(Items, _lastItems) || PageSize != _lastPageSize;
+        if (!_dataInitialized || inputsChanged)
+        {
+            _lastItems = Items;
+            _lastPageSize = PageSize;
+            _dataInitialized = true;
+            await RefreshAsync();
+        }
     }
 
     /// <summary>Recomputes the data view (filter → sort → group → page).</summary>

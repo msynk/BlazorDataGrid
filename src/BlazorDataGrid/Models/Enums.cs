@@ -1,4 +1,4 @@
-namespace BlazorDataGrid.Models;
+namespace BlazorDataGrid;
 
 /// <summary>Sort direction for a column.</summary>
 public enum SortDirection

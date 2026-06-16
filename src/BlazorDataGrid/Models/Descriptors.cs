@@ -1,4 +1,4 @@
-namespace BlazorDataGrid.Models;
+namespace BlazorDataGrid;
 
 /// <summary>Describes the sort state applied to a single column.</summary>
 public sealed class SortDescriptor

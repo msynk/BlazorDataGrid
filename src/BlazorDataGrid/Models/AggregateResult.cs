@@ -1,4 +1,4 @@
-namespace BlazorDataGrid.Models;
+namespace BlazorDataGrid;
 
 /// <summary>Holds the computed aggregate value for a column footer or group.</summary>
 public sealed class AggregateResult

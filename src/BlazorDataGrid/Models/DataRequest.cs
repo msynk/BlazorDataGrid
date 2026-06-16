@@ -1,4 +1,4 @@
-namespace BlazorDataGrid.Models;
+namespace BlazorDataGrid;
 
 /// <summary>
 /// Describes the data the grid needs from an external/server-side source.
