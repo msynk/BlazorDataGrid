@@ -45,6 +45,22 @@
 
 <p class="hint">Discontinued rows span the Name cell over Category; premium rows span Price over Stock.</p>
 
+<h2>Markup</h2>
+<div class="card">
+<pre><code>&lt;BlazorDataGrid TItem="Product" Items="products" Bordered="true"&gt;
+    &lt;BlazorDataGridColumn TItem="Product" Field="Name" ColSpan="NameSpan"&gt;
+        &lt;Template Context="p"&gt;@@p.Name&lt;/Template&gt;
+    &lt;/BlazorDataGridColumn&gt;
+    &lt;BlazorDataGridColumn TItem="Product" Field="Category" /&gt;
+    &lt;BlazorDataGridColumn TItem="Product" Field="Price" Format="C2" /&gt;
+&lt;/BlazorDataGrid&gt;
+
+@@code {
+    // Return how many columns the cell should occupy (null = 1).
+    int? NameSpan(Product p) =&gt; p.Discontinued ? 2 : null;
+}</code></pre>
+</div>
+
 <style>
     .span-banner { font-weight: 600; color: var(--accent); }
 </style>

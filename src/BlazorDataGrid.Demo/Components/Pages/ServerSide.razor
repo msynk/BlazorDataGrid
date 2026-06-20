@@ -25,6 +25,25 @@
 
 <p class="hint">@_lastRequest</p>
 
+<h2>Markup</h2>
+<div class="card">
+<pre><code>&lt;BlazorDataGrid TItem="Product" OnRead="LoadData"
+                Pageable="true" PageSize="10" Sortable="true" Filterable="true" Loading="loading"&gt;
+    &lt;BlazorDataGridColumn TItem="Product" Field="Id" Title="ID" Filterable="false" /&gt;
+    &lt;BlazorDataGridColumn TItem="Product" Field="Name" /&gt;
+    &lt;BlazorDataGridColumn TItem="Product" Field="Price" Format="C2" /&gt;
+&lt;/BlazorDataGrid&gt;
+
+@@code {
+    async Task&lt;BlazorDataGridReadResult&lt;Product&gt;&gt; LoadData(BlazorDataGridReadRequest request)
+    {
+        // request.Sorts, request.Filters, request.Skip, request.Take
+        var page = await Backend.QueryAsync(request);
+        return new BlazorDataGridReadResult&lt;Product&gt;(page.Items, page.TotalCount);
+    }
+}</code></pre>
+</div>
+
 @code {
     private readonly List<Product> _all = SampleData.Generate(523);
     private bool _loading;

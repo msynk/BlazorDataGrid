@@ -29,6 +29,25 @@
 
 <p class="hint">@_log</p>
 
+<h2>Markup</h2>
+<div class="card">
+<pre><code>&lt;BlazorDataGrid TItem="Product" OnLoadMore="LoadMore" LoadMoreBatchSize="40"
+                Height="520px" RowHeight="40" Sortable="true"&gt;
+    &lt;BlazorDataGridColumn TItem="Product" Field="Id" Title="ID" /&gt;
+    &lt;BlazorDataGridColumn TItem="Product" Field="Name" /&gt;
+    &lt;BlazorDataGridColumn TItem="Product" Field="Price" Format="C2" /&gt;
+&lt;/BlazorDataGrid&gt;
+
+@@code {
+    async Task&lt;BlazorDataGridReadResult&lt;Product&gt;&gt; LoadMore(BlazorDataGridReadRequest request)
+    {
+        var batch = Query.Skip(request.Skip).Take(request.Take ?? 40).ToList();
+        // Return fewer rows than requested to signal the end of the data.
+        return new BlazorDataGridReadResult&lt;Product&gt;(batch, 0);
+    }
+}</code></pre>
+</div>
+
 @code {
     // A backing store we page through. In a real app this would be a database/API query.
     // The grid never sees its size — it just keeps asking for the next batch.

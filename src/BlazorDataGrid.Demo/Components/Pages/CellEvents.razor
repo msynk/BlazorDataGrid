@@ -36,6 +36,24 @@
     </div>
 }
 
+<h2>Markup</h2>
+<div class="card">
+<pre><code>&lt;BlazorDataGrid TItem="Product" Items="products"
+                OnCellClick="OnCellClick"
+                OnCellDoubleClick="OnCellDoubleClick"
+                OnCellContextMenu="OnCellContextMenu"&gt;
+    &lt;BlazorDataGridColumn TItem="Product" Field="Name" /&gt;
+    &lt;BlazorDataGridColumn TItem="Product" Field="Price" Format="C2" /&gt;
+&lt;/BlazorDataGrid&gt;
+
+@@code {
+    void OnCellContextMenu(BlazorDataGridCellEventArgs&lt;Product&gt; e)
+    {
+        // e.Item, e.ColumnTitle, e.Value, e.Mouse.ClientX / e.Mouse.ClientY
+    }
+}</code></pre>
+</div>
+
 <style>
     .ctx-menu {
         position: fixed;

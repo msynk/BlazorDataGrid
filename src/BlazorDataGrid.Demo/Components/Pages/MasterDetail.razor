@@ -49,6 +49,23 @@
 
 <p class="hint">Each nested detail grid sorts and styles independently of the master grid.</p>
 
+<h2>Markup</h2>
+<div class="card">
+<pre><code>&lt;BlazorDataGrid TItem="Supplier" Items="suppliers" Sortable="true"&gt;
+    &lt;DetailTemplate Context="supplier"&gt;
+        &lt;!-- Render anything, including a nested grid --&gt;
+        &lt;BlazorDataGrid TItem="Product" Items="supplier.Products" Sortable="true"&gt;
+            &lt;BlazorDataGridColumn TItem="Product" Field="Name" /&gt;
+            &lt;BlazorDataGridColumn TItem="Product" Field="Price" Format="C2" /&gt;
+        &lt;/BlazorDataGrid&gt;
+    &lt;/DetailTemplate&gt;
+    &lt;ChildContent&gt;
+        &lt;BlazorDataGridColumn TItem="Supplier" Field="Name" Title="Supplier" /&gt;
+        &lt;BlazorDataGridColumn TItem="Supplier" Field="ProductCount" Title="Products" /&gt;
+    &lt;/ChildContent&gt;
+&lt;/BlazorDataGrid&gt;</code></pre>
+</div>
+
 @code {
     private List<Supplier> _suppliers = BuildSuppliers();
 

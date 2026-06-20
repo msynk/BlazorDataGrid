@@ -43,6 +43,22 @@
     </BlazorDataGrid>
 </div>
 
+<h2>Markup</h2>
+<div class="card">
+<pre><code>&lt;BlazorDataGrid TItem="Product" Items="items" Sortable="true"&gt;
+    &lt;EmptyTemplate&gt;
+        &lt;div class="empty-state"&gt;
+            &lt;h3&gt;Nothing here yet&lt;/h3&gt;
+            &lt;p&gt;Try loading the sample data or adjusting your filters.&lt;/p&gt;
+        &lt;/div&gt;
+    &lt;/EmptyTemplate&gt;
+    &lt;ChildContent&gt;
+        &lt;BlazorDataGridColumn TItem="Product" Field="Id" Title="ID" /&gt;
+        &lt;BlazorDataGridColumn TItem="Product" Field="Name" /&gt;
+    &lt;/ChildContent&gt;
+&lt;/BlazorDataGrid&gt;</code></pre>
+</div>
+
 @code {
     private List<Product> _data = SampleData.Generate(25);
     private readonly List<Product> _empty = new();
