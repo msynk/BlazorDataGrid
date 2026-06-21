@@ -188,6 +188,7 @@ public partial class BlazorDataGrid<TItem> : ComponentBase, IAsyncDisposable
     private bool _dataInitialized;
     private IEnumerable<TItem>? _lastItems;
     private int _lastPageSize;
+    private BlazorDataGridSelectionMode? _lastSelectionMode;
 
     // editing
     private TItem? _editItem;
@@ -251,11 +252,23 @@ public partial class BlazorDataGrid<TItem> : ComponentBase, IAsyncDisposable
     {
         _effectivePageSize = Pageable ? Math.Max(1, PageSize) : int.MaxValue;
 
-        if (SelectedItems is not null)
+        // Reset the current selection whenever the selection mode changes
+        // (e.g. switching between Single and Multiple), since the previous
+        // selection no longer makes sense under the new semantics.
+        if (_lastSelectionMode is not null && _lastSelectionMode != SelectionMode)
+        {
+            if (_selected.Count > 0)
+            {
+                _selected.Clear();
+                await NotifySelectionAsync();
+            }
+        }
+        else if (SelectedItems is not null)
         {
             _selected.Clear();
             foreach (var i in SelectedItems) _selected.Add(i);
         }
+        _lastSelectionMode = SelectionMode;
 
         // Only (re)load data when an external input that affects it actually changes.
         // Refreshing on every parameter set would cause an infinite loop in server mode:

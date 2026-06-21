@@ -109,8 +109,13 @@
 .bdg-striped .bdg-body .bdg-row:nth-child(even) .bdg-cell { background: light-dark(#fbfcfd, #20242a); }
 .bdg-hoverable .bdg-body .bdg-row:hover .bdg-cell { background: var(--bdg-row-hover); }
 
-.bdg-row.bdg-selected .bdg-cell { background: var(--bdg-row-selected); }
-.bdg-row.bdg-editing .bdg-cell { background: light-dark(#fff8e6, #2e2a17); }
+/* Selection & editing must win over both striping and hover (in every row position) */
+.bdg-row.bdg-selected .bdg-cell,
+.bdg-striped .bdg-body .bdg-row.bdg-selected:nth-child(even) .bdg-cell,
+.bdg-hoverable .bdg-body .bdg-row.bdg-selected:hover .bdg-cell { background: var(--bdg-row-selected); }
+.bdg-row.bdg-editing .bdg-cell,
+.bdg-striped .bdg-body .bdg-row.bdg-editing:nth-child(even) .bdg-cell,
+.bdg-hoverable .bdg-body .bdg-row.bdg-editing:hover .bdg-cell { background: light-dark(#fff8e6, #2e2a17); }
 
 /* Sticky / frozen columns */
 .bdg-sticky { position: sticky; z-index: 2; }
