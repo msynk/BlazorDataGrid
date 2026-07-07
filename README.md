@@ -1,3 +1,7 @@
+**Note**: moved to bit BlazorUI (https://blazorui.bitplatform.dev)
+
+---
+
 # BlazorDataGrid
 
 A feature-rich, **native Blazor** data grid for **.NET 10**, built with minimal JavaScript.
